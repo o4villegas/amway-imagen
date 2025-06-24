@@ -3,21 +3,36 @@ type Env = {
 };
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === "POST") {
       const formData = await request.formData();
-      const prompt = formData.get("prompt")?.toString() || "";
 
-      const inputs = { prompt };
+      const businessType = formData.get("businessType")?.toString() || "business";
+      const sceneType = formData.get("sceneType")?.toString() || "modern office";
+      const timeOfDay = formData.get("timeOfDay")?.toString() || "daytime";
+      const visualTone = formData.get("visualTone")?.toString() || "cinematic";
+      const seed = parseInt(formData.get("seed")?.toString() || "42");
+
+      const prompt = `A ${visualTone} image of a ${businessType} in a ${sceneType} at ${timeOfDay}, with professional lighting, clear branding, digital tools on display, confident team interaction, high resolution, corporate aesthetic, 16:9 composition`;
+
+      const inputs = {
+        prompt,
+        negative_prompt: "blurry, distorted, low quality, extra limbs, watermark",
+        guidance_scale: 8.0,
+        seed,
+        num_inference_steps: 40,
+      };
 
       const aiResponse = await env.AI.run(
         "@cf/stabilityai/stable-diffusion-xl-base-1.0",
-        inputs,
+        inputs
       );
 
-      return new Response(aiResponse, {
-        headers: { "content-type": "image/png" },
-      });
+      const headers = new Headers();
+      headers.set("content-type", "image/png");
+      headers.set("x-generated-prompt", prompt);
+
+      return new Response(aiResponse, { headers });
     }
 
     return new Response(
@@ -26,55 +41,116 @@ export default {
       <html lang="en">
       <head>
         <meta charset="UTF-8" />
-        <title>AI Ad Image Generator</title>
+        <title>GVO Ad Image Generator</title>
         <style>
           body {
-            font-family: sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: system-ui, sans-serif;
             padding: 2rem;
             max-width: 800px;
             margin: auto;
-            background: #f4f4f8;
-            color: #333;
+          }
+          h1 {
+            color: #7ed957;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+          }
+          label {
+            display: block;
+            margin: 1rem 0 0.25rem;
+            font-weight: bold;
+          }
+          select, input[type="submit"], input[type="number"] {
+            padding: 0.5rem;
+            width: 100%;
+            margin-bottom: 1rem;
+            border-radius: 5px;
+            border: none;
+            font-size: 1rem;
           }
           input[type="submit"] {
-            padding: 0.5rem 1rem;
-            background: #1F497D;
+            background-color: #1f497d;
             color: white;
-            border: none;
-            border-radius: 5px;
             cursor: pointer;
           }
-          textarea {
-            width: 100%;
-            height: 120px;
-            font-size: 1rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-          }
           img {
-            display: block;
             margin-top: 2rem;
             max-width: 100%;
-            height: auto;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.6);
+          }
+          .prompt-output {
+            margin-top: 2rem;
+            background: #1e293b;
+            padding: 1rem;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+          }
+          a.download {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: #7ed957;
+            color: #0f172a;
+            text-decoration: none;
+            border-radius: 5px;
           }
         </style>
       </head>
       <body>
-        <h1>AI Ad Image Generator</h1>
-        <form method="POST">
-          <label for="prompt">Prompt:</label><br />
-          <textarea name="prompt">
-A confident business owner standing in a modern office with large glass windows overlooking a city skyline at sunrise, ambient warm lighting, wearing a tailored suit, holding a digital tablet displaying analytics, diverse team working collaboratively in the background, high contrast, ultra-realistic style, clean and minimal aesthetic, corporate color palette (blue, gray, white), depth of field focus on the business owner, professional branding atmosphere, 16:9 composition, perfect lighting, cinematic
-          </textarea><br />
-          <input type="submit" value="Generate Image" />
+        <h1>GVO Ad Image Generator</h1>
+        <form id="gen-form" method="POST">
+          <label for="businessType">Business Type</label>
+          <select name="businessType" required>
+            <option value="tech startup">Tech Startup</option>
+            <option value="law firm">Law Firm</option>
+            <option value="retail brand">Retail Brand</option>
+            <option value="marketing agency">Marketing Agency</option>
+          </select>
+
+          <label for="sceneType">Scene Type</label>
+          <select name="sceneType" required>
+            <option value="modern office">Modern Office</option>
+            <option value="boardroom">Boardroom</option>
+            <option value="coworking space">Coworking Space</option>
+            <option value="creative studio">Creative Studio</option>
+          </select>
+
+          <label for="timeOfDay">Time of Day</label>
+          <select name="timeOfDay" required>
+            <option value="sunrise">Sunrise</option>
+            <option value="daytime">Daytime</option>
+            <option value="sunset">Sunset</option>
+            <option value="evening">Evening</option>
+          </select>
+
+          <label for="visualTone">Visual Tone</label>
+          <select name="visualTone" required>
+            <option value="ultra-realistic">Ultra-Realistic</option>
+            <option value="cinematic">Cinematic</option>
+            <option value="minimalist">Minimalist</option>
+            <option value="dreamlike">Dreamlike</option>
+          </select>
+
+          <label for="seed">Custom Seed (optional)</label>
+          <input type="number" name="seed" placeholder="42" min="1" max="9999999" />
+
+          <input type="submit" value="Generate Ad Image" />
         </form>
 
+        <div class="prompt-output" id="prompt-output" style="display: none;">
+          <strong>Generated Prompt:</strong>
+          <p id="prompt-text"></p>
+        </div>
+
+        <a id="download-link" class="download" style="display:none;" download="gvo_ad.png">Download Image</a>
+
+        <img id="result-image" src="" alt="Generated Ad" style="display: none;" />
+
         <script>
-          const form = document.querySelector('form');
+          const form = document.getElementById('gen-form');
           form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(form);
@@ -82,13 +158,23 @@ A confident business owner standing in a modern office with large glass windows 
               method: 'POST',
               body: formData,
             });
+
+            const prompt = response.headers.get("x-generated-prompt");
+            if (prompt) {
+              document.getElementById('prompt-text').textContent = prompt;
+              document.getElementById('prompt-output').style.display = "block";
+            }
+
             const blob = await response.blob();
             const imgUrl = URL.createObjectURL(blob);
-            const existing = document.querySelector('img');
-            if (existing) existing.remove();
-            const img = document.createElement('img');
-            img.src = imgUrl;
-            document.body.appendChild(img);
+            const image = document.getElementById('result-image');
+            const download = document.getElementById('download-link');
+
+            image.src = imgUrl;
+            image.style.display = "block";
+
+            download.href = imgUrl;
+            download.style.display = "inline-block";
           });
         </script>
       </body>
