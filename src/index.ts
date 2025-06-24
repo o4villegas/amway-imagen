@@ -8,12 +8,15 @@ export default {
       const formData = await request.formData();
 
       const businessType = formData.get("businessType")?.toString() || "business";
-      const sceneType = formData.get("sceneType")?.toString() || "modern office";
+      const sceneType = formData.get("sceneType")?.toString() || "office";
       const timeOfDay = formData.get("timeOfDay")?.toString() || "daytime";
       const visualTone = formData.get("visualTone")?.toString() || "cinematic";
+      const mood = formData.get("mood")?.toString() || "empowering";
+      const cameraAngle = formData.get("cameraAngle")?.toString() || "eye-level";
+      const focus = formData.get("focus")?.toString() || "founder";
       const seed = parseInt(formData.get("seed")?.toString() || "42");
 
-      const prompt = `A ${visualTone} image of a ${businessType} in a ${sceneType} at ${timeOfDay}, with professional lighting, clear branding, digital tools on display, confident team interaction, high resolution, corporate aesthetic, 16:9 composition`;
+      const prompt = `An ${visualTone}, ${mood} image of a ${businessType} in a ${sceneType} setting at ${timeOfDay}, captured from a ${cameraAngle} perspective, focusing on the ${focus}, with modern digital elements, confident atmosphere, high clarity, professional color palette, cinematic lighting, 16:9 composition`;
 
       const inputs = {
         prompt,
@@ -58,12 +61,13 @@ export default {
           }
           label {
             display: block;
-            margin: 1rem 0 0.25rem;
+            margin-top: 1rem;
             font-weight: bold;
           }
           select, input[type="submit"], input[type="number"] {
             padding: 0.5rem;
             width: 100%;
+            margin-top: 0.25rem;
             margin-bottom: 1rem;
             border-radius: 5px;
             border: none;
@@ -97,48 +101,84 @@ export default {
             text-decoration: none;
             border-radius: 5px;
           }
+          progress {
+            width: 100%;
+            height: 12px;
+            display: none;
+            margin-top: 1rem;
+            appearance: none;
+          }
         </style>
       </head>
       <body>
         <h1>GVO Ad Image Generator</h1>
         <form id="gen-form" method="POST">
-          <label for="businessType">Business Type</label>
-          <select name="businessType" required>
+          <label>Business Type</label>
+          <select name="businessType">
             <option value="tech startup">Tech Startup</option>
             <option value="law firm">Law Firm</option>
             <option value="retail brand">Retail Brand</option>
             <option value="marketing agency">Marketing Agency</option>
+            <option value="finance firm">Finance Firm</option>
+            <option value="nonprofit">Nonprofit</option>
           </select>
 
-          <label for="sceneType">Scene Type</label>
-          <select name="sceneType" required>
+          <label>Scene Type</label>
+          <select name="sceneType">
             <option value="modern office">Modern Office</option>
             <option value="boardroom">Boardroom</option>
             <option value="coworking space">Coworking Space</option>
             <option value="creative studio">Creative Studio</option>
+            <option value="outdoor terrace">Outdoor Terrace</option>
           </select>
 
-          <label for="timeOfDay">Time of Day</label>
-          <select name="timeOfDay" required>
+          <label>Time of Day</label>
+          <select name="timeOfDay">
             <option value="sunrise">Sunrise</option>
             <option value="daytime">Daytime</option>
             <option value="sunset">Sunset</option>
             <option value="evening">Evening</option>
           </select>
 
-          <label for="visualTone">Visual Tone</label>
-          <select name="visualTone" required>
+          <label>Visual Tone</label>
+          <select name="visualTone">
             <option value="ultra-realistic">Ultra-Realistic</option>
             <option value="cinematic">Cinematic</option>
             <option value="minimalist">Minimalist</option>
             <option value="dreamlike">Dreamlike</option>
           </select>
 
-          <label for="seed">Custom Seed (optional)</label>
+          <label>Mood</label>
+          <select name="mood">
+            <option value="empowering">Empowering</option>
+            <option value="visionary">Visionary</option>
+            <option value="relaxed">Relaxed</option>
+            <option value="ambitious">Ambitious</option>
+          </select>
+
+          <label>Camera Angle</label>
+          <select name="cameraAngle">
+            <option value="eye-level">Eye-Level</option>
+            <option value="wide shot">Wide Shot</option>
+            <option value="over-the-shoulder">Over-the-Shoulder</option>
+            <option value="low angle">Low Angle</option>
+          </select>
+
+          <label>Subject Focus</label>
+          <select name="focus">
+            <option value="founder">Founder</option>
+            <option value="team">Team Collaboration</option>
+            <option value="product">Product Display</option>
+            <option value="data analytics screen">Analytics Screen</option>
+          </select>
+
+          <label>Custom Seed (optional)</label>
           <input type="number" name="seed" placeholder="42" min="1" max="9999999" />
 
           <input type="submit" value="Generate Ad Image" />
         </form>
+
+        <progress id="progress-bar" value="0" max="100"></progress>
 
         <div class="prompt-output" id="prompt-output" style="display: none;">
           <strong>Generated Prompt:</strong>
@@ -146,18 +186,39 @@ export default {
         </div>
 
         <a id="download-link" class="download" style="display:none;" download="gvo_ad.png">Download Image</a>
-
         <img id="result-image" src="" alt="Generated Ad" style="display: none;" />
 
         <script>
           const form = document.getElementById('gen-form');
+          const progressBar = document.getElementById('progress-bar');
+          let progressInterval;
+
           form.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            document.getElementById('prompt-output').style.display = "none";
+            document.getElementById('result-image').style.display = "none";
+            document.getElementById('download-link').style.display = "none";
+
+            progressBar.style.display = "block";
+            progressBar.value = 0;
+            let progress = 0;
+            progressInterval = setInterval(() => {
+              progress += Math.random() * 5;
+              progressBar.value = Math.min(progress, 98);
+            }, 300);
+
             const formData = new FormData(form);
             const response = await fetch('/', {
               method: 'POST',
               body: formData,
             });
+
+            clearInterval(progressInterval);
+            progressBar.value = 100;
+            setTimeout(() => {
+              progressBar.style.display = "none";
+            }, 400);
 
             const prompt = response.headers.get("x-generated-prompt");
             if (prompt) {
@@ -172,7 +233,6 @@ export default {
 
             image.src = imgUrl;
             image.style.display = "block";
-
             download.href = imgUrl;
             download.style.display = "inline-block";
           });
