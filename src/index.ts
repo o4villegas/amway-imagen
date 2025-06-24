@@ -1,7 +1,7 @@
 export default {
   async fetch(request, env) {
     const inputs = {
-      prompt: "cyberpunk cat",
+      prompt: "ad image for a B2B lead generation ad targeted at construction workers",
     };
 
     const response = await env.AI.run(
