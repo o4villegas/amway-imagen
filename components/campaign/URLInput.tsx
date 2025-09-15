@@ -21,7 +21,7 @@ export function URLInput({ onProductExtracted }: URLInputProps) {
       const domain = parsedUrl.hostname.replace('www.', '');
       return domain.endsWith('amway.com') && (
         parsedUrl.pathname.includes('/p/') ||
-        !!parsedUrl.pathname.match(/\/p-\d+$/)
+        !!parsedUrl.pathname.match(/-p-\d+/)
       );
     } catch {
       return false;
@@ -74,7 +74,7 @@ export function URLInput({ onProductExtracted }: URLInputProps) {
   const exampleUrls = [
     'https://www.amway.com/en_US/p/326782',
     'https://www.amway.com/en_US/Nutrilite-Daily-p-100186',
-    'https://www.amway.com/en_US/p/110798'
+    'https://www.amway.com/en_US/Sleep-%2B-Stress-Solution-p-321893'
   ];
 
   return (
@@ -97,7 +97,7 @@ export function URLInput({ onProductExtracted }: URLInputProps) {
             <Input
               id="product-url"
               type="url"
-              placeholder="https://www.amway.com/en_US/p/product-id"
+              placeholder="https://www.amway.com/en_US/Product-Name-p-123456"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               className={`pr-10 ${error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}

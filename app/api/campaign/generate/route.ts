@@ -102,16 +102,18 @@ export async function POST(request: NextRequest) {
             }
 
             // Save to database
+            const filename = `${prompt.format}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
             await dbManager.saveGeneratedImage({
               campaign_id: campaignId,
               format: prompt.format,
               prompt: prompt.text,
+              file_path: filename,
               width: prompt.width,
               height: prompt.height
             });
 
             return {
-              filename: `${prompt.format}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`,
+              filename: filename,
               content: imageBuffer,
               format: prompt.format
             } as CampaignFile;
