@@ -25,7 +25,7 @@ export function validateAmwayURL(url: string): boolean {
 
     // Check for product URL pattern: /p/[product-id] or /en_US/...-p-[product-id]
     const pathname = parsedUrl.pathname;
-    return pathname.includes('/p/') || !!pathname.match(/\/p-\d+$/);
+    return pathname.includes('/p/') || !!pathname.match(/-p-\d+/);
   } catch {
     return false;
   }
@@ -43,7 +43,7 @@ export function extractProductId(url: string): string | null {
     }
 
     // Extract from /-p-123456 format
-    const suffixMatch = pathname.match(/\/p-(\d+)$/);
+    const suffixMatch = pathname.match(/-p-(\d+)/);
     if (suffixMatch) {
       return suffixMatch[1];
     }
@@ -72,7 +72,7 @@ export class AmwayProductScraper {
 
   private extractJsonLD(html: string): any | null {
     try {
-      const jsonLDRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>(.*?)<\/script>/g;
+      const jsonLDRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
       const matches = Array.from(html.matchAll(jsonLDRegex));
 
       for (const match of matches) {
@@ -122,23 +122,28 @@ export class AmwayProductScraper {
     const result: Partial<ScrapedProduct> = {};
 
     // Extract title
-    const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
     if (titleMatch) {
       result.name = titleMatch[1]
-        .replace(/\s*\|\s*.*$/, '') // Remove "| Amway" suffix
+        .replace(/\s+/g, ' ') // Normalize whitespace first
+        .trim()
+        .split(/\s*[|]\s*/)[0] // Take everything before first pipe
+        .split(/\s*[-–]\s*/)[0] // Take everything before first dash
         .replace(/&trade;/g, '™')
         .replace(/&reg;/g, '®')
         .trim();
     }
 
     // Extract description
-    const descMatch = html.match(/<meta\s+name=["']description["']\s+content=["']([^"']*)["']/i);
+    const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i) ||
+                      html.match(/<meta[^>]*content=["']([^"']*)["'][^>]*name=["']description["']/i);
     if (descMatch) {
       result.description = descMatch[1].trim();
     }
 
     // Extract OG image
-    const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']*)["']/i);
+    const ogImageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']*)["']/i) ||
+                         html.match(/<meta[^>]*content=["']([^"']*)["'][^>]*property=["']og:image["']/i);
     if (ogImageMatch) {
       result.main_image_url = ogImageMatch[1];
     }
@@ -157,7 +162,12 @@ export class AmwayProductScraper {
     }
 
     try {
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       const response = await fetch(url, {
+        signal: controller.signal,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -168,6 +178,8 @@ export class AmwayProductScraper {
           'Upgrade-Insecure-Requests': '1',
         }
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -276,6 +288,9 @@ export class AmwayProductScraper {
       return result;
 
     } catch (error: any) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout: The Amway website took too long to respond');
+      }
       throw new Error(`Failed to scrape product: ${error.message}`);
     }
   }

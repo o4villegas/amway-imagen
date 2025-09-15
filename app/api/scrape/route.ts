@@ -2,11 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
 import { AmwayProductScraper, validateAmwayURL } from '@/lib/scraper';
 import { DatabaseManager } from '@/lib/db';
+import { rateLimiters } from '@/lib/rate-limiter';
 
 export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting
+    const rateLimitResult = await rateLimiters.scrape.isAllowed(request);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.retryAfter?.toString() || '60'
+          }
+        }
+      );
+    }
     const context = getRequestContext();
     const { DB } = context.env;
 

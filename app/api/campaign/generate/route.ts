@@ -4,6 +4,7 @@ import { DatabaseManager } from '@/lib/db';
 import { PromptGenerator } from '@/lib/prompt-generator';
 import { ZipCreator, CampaignFile, CampaignMetadata } from '@/lib/zip-creator';
 import { CampaignPreferences } from '@/app/campaign/new/page';
+import { rateLimiters } from '@/lib/rate-limiter';
 
 export const runtime = 'edge';
 
@@ -11,6 +12,19 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
+    // Apply rate limiting
+    const rateLimitResult = await rateLimiters.generate.isAllowed(request);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many generation requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.retryAfter?.toString() || '300'
+          }
+        }
+      );
+    }
     const context = getRequestContext();
     const { AI, CAMPAIGN_STORAGE, DB } = context.env;
 
