@@ -1,0 +1,105 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+Amway IBO Image Campaign Generator - A specialized application that converts Amway product URLs into professional marketing image campaigns. Uses AI-powered image generation with automatic product scraping, campaign configuration, and compliance integration.
+
+## Development Commands
+
+```bash
+npm install          # Install dependencies
+npm run dev          # Run local development server (http://localhost:3000)
+npm run build        # Build Next.js application
+npm run lint         # Run ESLint
+npm run preview      # Build and preview with Wrangler Pages
+npm run deploy       # Deploy to Cloudflare Pages
+npm run cf-typegen   # Generate TypeScript types for Cloudflare environment
+
+# Database commands (after D1 setup)
+wrangler d1 execute DB --file=./schema.sql  # Initialize database
+wrangler d1 migrations create DB init       # Create migration
+```
+
+## Architecture
+
+### Tech Stack
+- **Frontend**: Next.js 14 with App Router, React 18, TypeScript
+- **Styling**: Tailwind CSS with shadcn/ui components
+- **Deployment**: Cloudflare Pages with Edge Runtime
+- **AI**: Cloudflare Workers AI API (@cf/black-forest-labs/flux-1-schnell)
+- **Storage**: Cloudflare R2 for campaign ZIP files
+- **Database**: Cloudflare D1 for product data and campaign history
+- **Web Scraping**: HTMLRewriter API for Amway product extraction
+
+### Key Directories
+- `/app` - Next.js App Router pages and API routes
+  - `/campaign/new` - Multi-step campaign creation flow
+  - `/api/scrape` - Amway product URL scraping endpoint
+  - `/api/campaign/generate` - AI image generation and ZIP creation
+  - `/api/campaign/download` - Campaign download management
+- `/components/campaign` - Campaign-specific UI components
+  - `URLInput.tsx` - Product URL input and validation
+  - `ProductPreview.tsx` - Scraped product information display
+  - `PreferencesPanel.tsx` - Campaign configuration interface
+  - `GenerationProgress.tsx` - Real-time generation progress
+  - `DownloadManager.tsx` - Campaign download and management
+- `/lib` - Core business logic
+  - `scraper.ts` - Amway website scraping functionality
+  - `prompt-generator.ts` - AI prompt generation system
+  - `zip-creator.ts` - Campaign packaging and ZIP creation
+  - `db.ts` - D1 database operations
+
+### Core Functionality
+
+1. **Product Scraping Flow**:
+   - User enters Amway product URL
+   - HTMLRewriter extracts product data (JSON-LD + meta tags)
+   - Product info stored in D1 database with caching (24hr)
+   - Extracted data: name, description, benefits, category, price, images
+
+2. **Campaign Configuration**:
+   - Campaign type: Product focus vs Lifestyle focus
+   - Brand style: Professional, Casual, Wellness, Luxury
+   - Image formats: Instagram Post/Story, Facebook Cover, Pinterest
+   - Text overlay density: Minimal, Moderate, Heavy
+   - Campaign size: 5, 10, or 15 images
+
+3. **AI Image Generation Pipeline**:
+   - Dynamic prompt generation based on product data and preferences
+   - Batch AI generation (max 3 concurrent for performance)
+   - Compliance text automatically included based on product category
+   - Multiple format variations with optimized dimensions
+
+4. **Campaign Packaging & Download**:
+   - Images organized by format in ZIP structure
+   - Campaign metadata and usage guidelines included
+   - 24-hour download expiration with automatic cleanup
+   - Organized folder structure for easy social media use
+
+### Database Schema
+
+- **products**: Scraped Amway product information with caching
+- **campaigns**: User campaign configurations and status tracking
+- **generated_images**: Individual image records with metadata
+- **campaign_stats**: Analytics for generation success rates and performance
+
+### Cloudflare Integration
+
+- **D1 Database**: `DB` binding for campaign and product data
+- **R2 Storage**:
+  - `BUCKET` - Legacy bucket (kept for compatibility)
+  - `CAMPAIGN_STORAGE` - Campaign ZIP file storage
+- **AI Workers**: `AI` binding for Flux-1-Schnell image generation
+- **HTMLRewriter**: Native HTML parsing for product scraping
+
+## Important Notes
+
+- All API routes use edge runtime (`export const runtime = 'edge'`)
+- Product scraping supports amway.com domain with URL validation
+- Images generated with compliance disclaimers based on product category
+- Campaign files expire after 24 hours and are automatically cleaned up
+- Prompt generation is context-aware based on product category and benefits
+- ZIP files include usage guidelines and compliance information
+- Database operations include error handling and stats tracking

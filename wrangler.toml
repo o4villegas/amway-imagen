@@ -1,5 +1,5 @@
 #:schema node_modules/wrangler/config-schema.json
-name = "workers-ai-image-playground"
+name = "amway-image-generator"
 compatibility_date = "2024-09-25"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".vercel/output/static"
@@ -11,5 +11,18 @@ binding = "AI"
 bucket_name = "ai-img-playground"
 binding = "BUCKET"
 
+# Campaign storage bucket for ZIP files
+[[r2_buckets]]
+bucket_name = "amway-campaigns"
+binding = "CAMPAIGN_STORAGE"
+
+# D1 database for product data and campaigns
+[[d1_databases]]
+binding = "DB"
+database_name = "amway-image-gen"
+database_id = "placeholder-will-be-created"
+
 [vars]
 CLOUDFLARE_ACCOUNT_ID = "dc56444c4c955a1653106ccf997c1067"
+CAMPAIGN_EXPIRY_HOURS = "24"
+MAX_IMAGES_PER_CAMPAIGN = "15"
