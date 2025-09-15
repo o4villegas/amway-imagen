@@ -20,7 +20,7 @@ binding = "CAMPAIGN_STORAGE"
 [[d1_databases]]
 binding = "DB"
 database_name = "amway-image-gen"
-database_id = "placeholder-will-be-created"
+database_id = "a045519c-a814-4160-8bbe-5b3a4df6c55b"
 
 [vars]
 CLOUDFLARE_ACCOUNT_ID = "dc56444c4c955a1653106ccf997c1067"

@@ -52,14 +52,12 @@ CREATE TABLE generated_images (
 
 -- Campaign history for analytics
 CREATE TABLE campaign_stats (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    date DATE NOT NULL,
+    date DATE PRIMARY KEY NOT NULL,
     total_campaigns INTEGER DEFAULT 0,
     successful_campaigns INTEGER DEFAULT 0,
     failed_campaigns INTEGER DEFAULT 0,
     total_images_generated INTEGER DEFAULT 0,
-    avg_generation_time_seconds REAL,
-    PRIMARY KEY (date)
+    avg_generation_time_seconds REAL
 ) WITHOUT ROWID;
 
 -- Create indexes for performance
