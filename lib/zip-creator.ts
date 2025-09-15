@@ -36,7 +36,7 @@ export class ZipCreator {
     // Add all images organized by format
     const formatFolders = new Set(images.map(img => img.format));
 
-    for (const format of formatFolders) {
+    for (const format of Array.from(formatFolders)) {
       const formatImages = images.filter(img => img.format === format);
 
       formatImages.forEach((img, index) => {

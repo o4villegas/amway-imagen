@@ -95,7 +95,7 @@ export default function Home() {
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Paste Product URL</h3>
               <p className="text-gray-600 text-sm">
-                Enter any Amway product page URL and we'll extract all the details
+                Enter any Amway product page URL and we&apos;ll extract all the details
               </p>
             </div>
             <div className="text-center">

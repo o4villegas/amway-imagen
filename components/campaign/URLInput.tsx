@@ -21,7 +21,7 @@ export function URLInput({ onProductExtracted }: URLInputProps) {
       const domain = parsedUrl.hostname.replace('www.', '');
       return domain.endsWith('amway.com') && (
         parsedUrl.pathname.includes('/p/') ||
-        parsedUrl.pathname.match(/\/p-\d+$/)
+        !!parsedUrl.pathname.match(/\/p-\d+$/)
       );
     } catch {
       return false;
@@ -53,7 +53,11 @@ export function URLInput({ onProductExtracted }: URLInputProps) {
         body: JSON.stringify({ productUrl: url.trim() }),
       });
 
-      const data = await response.json();
+      const data = await response.json() as {
+        success: boolean;
+        error?: string;
+        product: StoredProduct;
+      };
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to extract product information');

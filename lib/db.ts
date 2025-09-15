@@ -260,7 +260,7 @@ export class DatabaseManager {
         'SELECT * FROM generated_images WHERE campaign_id = ? ORDER BY generated_at ASC'
       ).bind(campaignId).all();
 
-      return results.results as GeneratedImage[];
+      return results.results as unknown as GeneratedImage[];
     } catch (error) {
       console.error('Error getting campaign images:', error);
       return [];

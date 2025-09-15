@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     const context = getRequestContext();
     const { DB } = context.env;
 
-    const { productUrl } = await request.json();
+    const { productUrl } = await request.json() as { productUrl: string };
 
     if (!productUrl || typeof productUrl !== 'string') {
       return NextResponse.json(

@@ -78,11 +78,9 @@ export default function NewCampaign() {
         {/* Progress Indicator */}
         <div className="mb-8">
           <div className="flex items-center space-x-4">
-            <div className={`flex items-center ${step === 'input' ? 'text-blue-600' : step !== 'input' ? 'text-green-600' : 'text-gray-400'}`}>
+            <div className={`flex items-center ${step === 'input' ? 'text-blue-600' : 'text-green-600'}`}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                step === 'input' ? 'bg-blue-600 text-white' :
-                step !== 'input' ? 'bg-green-600 text-white' :
-                'bg-gray-200 text-gray-600'
+                step === 'input' ? 'bg-blue-600 text-white' : 'bg-green-600 text-white'
               }`}>
                 1
               </div>

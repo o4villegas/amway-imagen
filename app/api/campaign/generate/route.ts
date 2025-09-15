@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       const metadata: CampaignMetadata = {
         generated: new Date().toISOString(),
         totalImages: generatedImages.length,
-        formats: [...new Set(generatedImages.map(img => img.format))],
+        formats: Array.from(new Set(generatedImages.map(img => img.format))),
         product: {
           name: product.name,
           brand: product.brand || 'Amway',
@@ -144,8 +144,10 @@ export async function POST(request: NextRequest) {
       // Upload to R2
       const campaignKey = `campaigns/${campaignId}_${Date.now()}.zip`;
       await CAMPAIGN_STORAGE.put(campaignKey, zipBuffer, {
-        metadata: {
-          contentType: 'application/zip',
+        httpMetadata: {
+          contentType: 'application/zip'
+        },
+        customMetadata: {
           campaignId: campaignId.toString(),
           productId: productId.toString(),
           totalImages: generatedImages.length.toString(),

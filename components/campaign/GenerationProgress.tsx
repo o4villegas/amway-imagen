@@ -25,7 +25,7 @@ export function GenerationProgress({ product, preferences, onComplete }: Generat
 
   useEffect(() => {
     startGeneration();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startGeneration = async () => {
     try {
@@ -45,7 +45,7 @@ export function GenerationProgress({ product, preferences, onComplete }: Generat
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json() as { error?: string };
         throw new Error(errorData.error || 'Generation failed');
       }
 
@@ -67,7 +67,14 @@ export function GenerationProgress({ product, preferences, onComplete }: Generat
         });
       }, 1500);
 
-      const result = await response.json();
+      const result = await response.json() as {
+        success: boolean;
+        error?: string;
+        campaignId: number;
+        downloadUrl: string;
+        expiresAt: string;
+        totalImages: number;
+      };
       clearInterval(progressInterval);
 
       if (result.success) {

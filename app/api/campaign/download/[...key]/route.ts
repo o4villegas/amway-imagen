@@ -27,7 +27,7 @@ export async function GET(
     }
 
     // Check if the campaign has expired (24 hours)
-    const metadata = object.metadata;
+    const metadata = object.customMetadata;
     if (metadata?.createdAt) {
       const createdAt = parseInt(metadata.createdAt);
       const now = Date.now();

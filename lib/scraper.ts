@@ -25,7 +25,7 @@ export function validateAmwayURL(url: string): boolean {
 
     // Check for product URL pattern: /p/[product-id] or /en_US/...-p-[product-id]
     const pathname = parsedUrl.pathname;
-    return pathname.includes('/p/') || pathname.match(/\/p-\d+$/);
+    return pathname.includes('/p/') || !!pathname.match(/\/p-\d+$/);
   } catch {
     return false;
   }
@@ -72,8 +72,8 @@ export class AmwayProductScraper {
 
   private extractJsonLD(html: string): any | null {
     try {
-      const jsonLDRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>(.*?)<\/script>/gs;
-      const matches = [...html.matchAll(jsonLDRegex)];
+      const jsonLDRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>(.*?)<\/script>/g;
+      const matches = Array.from(html.matchAll(jsonLDRegex));
 
       for (const match of matches) {
         try {
@@ -105,7 +105,7 @@ export class AmwayProductScraper {
 
   private extractUtagData(html: string): any | null {
     try {
-      const utagRegex = /window\.utag_data\s*=\s*({.*?});/s;
+      const utagRegex = /window\.utag_data\s*=\s*({.*?});/;
       const match = html.match(utagRegex);
 
       if (match) {
@@ -275,7 +275,7 @@ export class AmwayProductScraper {
 
       return result;
 
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to scrape product: ${error.message}`);
     }
   }
