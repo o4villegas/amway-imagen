@@ -9,20 +9,10 @@ export function sanitizePrompt(prompt: string): string {
   // Remove any control characters
   let sanitized = prompt.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
 
-  // NSFW-aware health term filtering to prevent AI filter triggers
+  // Minimal health term filtering - only replace truly problematic terms
   const healthTermReplacements: Record<string, string> = {
-    'holistic wellness': 'wellness',
-    'wellness program': 'nutrition program',
-    'begin 30': 'nutrition solution',
-    'vanilla/unflavored': 'vanilla flavor',
-    'weight management': 'fitness support',
-    'immune support': 'health support',
-    'digestive health': 'nutrition support',
-    'cleansing': 'refreshing',
-    'detox': 'cleanse',
     'sexual': 'intimate',
-    'fertility': 'reproductive',
-    'hormone': 'balance'
+    'fertility': 'reproductive'
   };
 
   // Apply health term replacements first
@@ -30,7 +20,7 @@ export function sanitizePrompt(prompt: string): string {
     sanitized = sanitized.replace(new RegExp(term, 'gi'), replacement);
   }
 
-  // Remove potential injection patterns
+  // Remove potential injection patterns - preserve important marketing terms
   const injectionPatterns = [
     /\bignore\s+(previous|all|above)\b/gi,
     /\bforget\s+(everything|all|previous)\b/gi,
@@ -40,12 +30,9 @@ export function sanitizePrompt(prompt: string): string {
     /\bjailbreak\b/gi,
     /\bbypass\b/gi,
     /\boverride\b/gi,
-    /\bexecute\b/gi,
-    /\beval\b/gi,
-    /\bscript\b/gi,
-    /<[^>]*>/g, // HTML tags
+    /<script[^>]*>.*?<\/script>/gi, // Script tags specifically
     /\${[^}]*}/g, // Template literals
-    /\[[^\]]*\]/g, // Potential command sequences
+    // Note: Removed bracket removal to preserve brand names and measurements
   ];
 
   for (const pattern of injectionPatterns) {

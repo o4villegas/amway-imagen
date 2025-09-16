@@ -112,14 +112,15 @@ export async function POST(request: NextRequest) {
 
         const batchPromises = batch.map(async (prompt, batchIndex) => {
           try {
-            // Ensure completely plain object for AI input to avoid serialization issues
-            const aiInput = JSON.parse(JSON.stringify({
+            // FLUX-1-schnell optimized parameters
+            const aiInput = {
               prompt: String(prompt.text),
-              num_steps: Number(CAMPAIGN_CONFIG.AI_GENERATION_STEPS),
-              guidance: Number(CAMPAIGN_CONFIG.AI_GUIDANCE_SCALE),
+              // FLUX-1-schnell specific parameters
+              num_inference_steps: 4, // Fast generation
+              guidance_scale: 0.0, // FLUX-1-schnell works better with lower guidance
               width: Number(prompt.width),
               height: Number(prompt.height)
-            }));
+            };
 
             // Log image generation attempt
             console.log(`Generating image ${i + batchIndex + 1} of ${imagePrompts.length}`);
@@ -129,19 +130,46 @@ export async function POST(request: NextRequest) {
               promptLength: prompt.text.length
             });
 
-            // In development, the AI binding may not work properly due to serialization issues
-            let response: { image?: string };
+            // Enhanced AI generation with retry logic
+            let response: { image?: string } | undefined;
             if (process.env.NODE_ENV === 'development') {
               console.warn('[DEV_MODE] Skipping AI generation - using mock response');
               // Create a small 1x1 PNG in base64 for testing
               const mockImage = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAGA=';
               response = { image: mockImage };
             } else {
-              response = await withTimeout(
-                AI.run('@cf/black-forest-labs/flux-1-schnell', aiInput),
-                TIMEOUTS.AI_GENERATION,
-                `AI generation for ${prompt.format}`
-              ) as { image?: string };
+              // Retry logic for AI generation failures
+              let lastError: any;
+              for (let attempt = 1; attempt <= 3; attempt++) {
+                try {
+                  console.log(`[AI_GENERATION] Attempt ${attempt}/3 for ${prompt.format}`);
+                  response = await withTimeout(
+                    AI.run('@cf/black-forest-labs/flux-1-schnell', aiInput),
+                    TIMEOUTS.AI_GENERATION,
+                    `AI generation for ${prompt.format}`
+                  ) as { image?: string };
+
+                  if (response && response.image) {
+                    console.log(`[AI_GENERATION] Success on attempt ${attempt}`);
+                    break;
+                  }
+                } catch (error: any) {
+                  lastError = error;
+                  console.error(`[AI_GENERATION] Attempt ${attempt} failed:`, {
+                    error: error.message,
+                    code: error.code,
+                    type: error.name
+                  });
+
+                  // If it's the last attempt, throw the error
+                  if (attempt === 3) {
+                    throw lastError;
+                  }
+
+                  // Wait before retry (exponential backoff)
+                  await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+                }
+              }
             }
 
             if (!response || !response.image) {

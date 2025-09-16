@@ -296,27 +296,23 @@ marketing quality
 
     const styleModifiers = STYLE_MODIFIERS[preferences.brand_style];
     const campaignType = CAMPAIGN_TYPES[preferences.campaign_type];
-    const colorScheme = COLOR_SCHEMES[preferences.color_scheme];
-    const benefits = this.getProductBenefits(safeProduct);
     const formatAspect = this.getFormatDescription(format);
 
-    // Enhanced text preservation instructions
-    const textPreservationPrompt = this.getTextPreservationInstructions(safeProduct, preferences.campaign_type);
+    // Simplified text preservation - focusing on core requirements
+    const textPreservation = preferences.campaign_type === 'product_focus'
+      ? 'clear readable product text and labels'
+      : 'visible branding when shown';
 
+    // Simplified, reliable prompt structure
     const rawPrompt = `
-${campaignType.basePrompt} ${sanitizedProductName},
-${textPreservationPrompt},
+Professional ${preferences.brand_style} photograph of ${sanitizedProductName} product,
+${textPreservation},
 ${campaignType.emphasis},
-${formatAspect} format,
+${formatAspect},
 ${styleModifiers.lighting},
-${styleModifiers.composition},
-${colorScheme},
-${styleModifiers.mood} atmosphere,
-highlighting ${benefits.join(' and ')},
-${campaignType.background},
-high resolution commercial photography,
-marketing quality,
-${styleModifiers.color}
+clean composition,
+commercial photography quality,
+marketing image
 `.replace(/\s+/g, ' ').trim();
 
     // Sanitize the final prompt

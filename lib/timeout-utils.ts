@@ -92,11 +92,11 @@ export async function withRetry<T>(
  */
 export const TIMEOUTS = {
   SCRAPE: 15000,        // 15 seconds for web scraping
-  AI_GENERATION: 30000, // 30 seconds per AI image
+  AI_GENERATION: 60000, // 60 seconds per AI image (FLUX needs more time)
   DB_OPERATION: 5000,   // 5 seconds for database ops
   R2_UPLOAD: 20000,     // 20 seconds for R2 uploads
   ZIP_CREATION: 60000,  // 60 seconds for ZIP file creation
-  API_REQUEST: 120000,  // 2 minutes for full API request
+  API_REQUEST: 180000,  // 3 minutes for full API request
 } as const;
 
 /**
