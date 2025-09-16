@@ -4,7 +4,7 @@ import { StoredProduct } from './db';
 import { CampaignPreferences } from '@/app/campaign/new/page';
 import { sanitizePrompt, sanitizeProductData, createSafePrompt } from './prompt-sanitizer';
 import { PromptTemplateEngine } from './prompt-templates';
-import { IMAGE_FORMATS } from './config';
+import { IMAGE_FORMATS, CAMPAIGN_CONFIG } from './config';
 
 export interface ImagePrompt {
   text: string;
@@ -222,6 +222,67 @@ export class PromptGenerator {
     return textInstructions.join(', ');
   }
 
+  private validatePromptLength(prompt: string, product: StoredProduct, campaignType: string): string {
+    const maxLength = CAMPAIGN_CONFIG.MAX_PROMPT_LENGTH;
+
+    if (prompt.length <= maxLength) {
+      return prompt;
+    }
+
+    // Prompt is too long - apply fallback strategy
+    console.warn(`[PROMPT_VALIDATION] Prompt length ${prompt.length} exceeds ${maxLength}, applying fallback`);
+
+    // Fallback strategy: Simplified text preservation
+    const fallbackTextPreservation = this.getFallbackTextPreservation(product, campaignType);
+
+    // Rebuild with essential elements only
+    const sanitizedProductName = this.sanitizeProductName(product.name);
+    const styleModifiers = STYLE_MODIFIERS.professional; // Use professional as safe default
+    const campaignTypeConfig = CAMPAIGN_TYPES[campaignType] || CAMPAIGN_TYPES.product_focus;
+
+    const fallbackPrompt = `
+${campaignTypeConfig.basePrompt} ${sanitizedProductName},
+${fallbackTextPreservation},
+professional studio lighting,
+clean composition,
+high resolution commercial photography,
+marketing quality
+`.replace(/\s+/g, ' ').trim();
+
+    const finalPrompt = sanitizePrompt(fallbackPrompt);
+
+    // If still too long, truncate gracefully
+    if (finalPrompt.length > maxLength) {
+      const truncated = finalPrompt.substring(0, maxLength - 20) + '...';
+      console.warn(`[PROMPT_VALIDATION] Applied truncation to ${truncated.length} characters`);
+      return truncated;
+    }
+
+    return finalPrompt;
+  }
+
+  private getFallbackTextPreservation(product: StoredProduct, campaignType: string): string {
+    // Minimal but essential text preservation for fallback
+    const brandName = product.brand || 'Amway';
+    const essentialInstructions = [];
+
+    if (campaignType === 'product_focus') {
+      essentialInstructions.push('clear readable text');
+
+      if (brandName !== 'Amway') {
+        essentialInstructions.push(`"${brandName}" visible`);
+      }
+
+      if (/[™®©]/.test(product.name)) {
+        essentialInstructions.push('preserve symbols');
+      }
+    } else {
+      essentialInstructions.push('readable branding');
+    }
+
+    return essentialInstructions.join(', ');
+  }
+
   private generateBasePrompt(
     product: StoredProduct,
     preferences: CampaignPreferences,
@@ -259,7 +320,10 @@ ${styleModifiers.color}
 `.replace(/\s+/g, ' ').trim();
 
     // Sanitize the final prompt
-    return sanitizePrompt(rawPrompt);
+    const sanitizedPrompt = sanitizePrompt(rawPrompt);
+
+    // Validate prompt length and apply fallback if needed
+    return this.validatePromptLength(sanitizedPrompt, safeProduct, preferences.campaign_type);
   }
 
   private getFormatDescription(format: keyof typeof FORMAT_DIMENSIONS): string {
