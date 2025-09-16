@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       for (let i = 0; i < imagePrompts.length; i += maxConcurrent) {
         const batch = imagePrompts.slice(i, i + maxConcurrent);
 
-        const batchPromises = batch.map(async (prompt) => {
+        const batchPromises = batch.map(async (prompt, batchIndex) => {
           try {
             const aiInput = {
               prompt: prompt.text,
@@ -110,7 +110,21 @@ export async function POST(request: NextRequest) {
               height: prompt.height
             };
 
-            safeLog(`Generating image ${i + 1}`, {
+            // PHASE 2 DEBUGGING: Log the exact prompt being sent to AI
+            console.log(`[PHASE2_DEBUG] About to send prompt ${i + batchIndex + 1}:`, {
+              format: prompt.format,
+              promptLength: prompt.text.length,
+              promptPreview: prompt.text.substring(0, 150) + '...',
+              fullPrompt: prompt.text,
+              aiInput: {
+                num_steps: aiInput.num_steps,
+                guidance: aiInput.guidance,
+                width: aiInput.width,
+                height: aiInput.height
+              }
+            });
+
+            safeLog(`Generating image ${i + batchIndex + 1}`, {
               format: prompt.format,
               promptLength: prompt.text.length
             });
@@ -181,6 +195,27 @@ export async function POST(request: NextRequest) {
             const errorMessage = error instanceof TimeoutError
               ? `Timeout after ${error.timeoutMs}ms`
               : error?.message || error?.name || 'Unknown';
+
+            // PHASE 2 DEBUGGING: Enhanced error logging
+            console.error(`[PHASE2_DEBUG] AI Generation Failed for prompt ${i + batchIndex + 1}:`, {
+              format: prompt.format,
+              promptUsed: prompt.text,
+              promptLength: prompt.text.length,
+              errorType: error?.name,
+              errorMessage: errorMessage,
+              errorCode: error?.code,
+              errorDetails: error?.details,
+              errorStack: error?.stack?.substring(0, 500),
+              isTimeout: error instanceof TimeoutError,
+              isNSFWError: errorMessage.includes('NSFW') || errorMessage.includes('3030'),
+              aiInputUsed: {
+                num_steps: CAMPAIGN_CONFIG.AI_GENERATION_STEPS,
+                guidance: CAMPAIGN_CONFIG.AI_GUIDANCE_SCALE,
+                width: prompt.width,
+                height: prompt.height
+              },
+              timestamp: new Date().toISOString()
+            });
 
             // Critical: Log detailed AI failure information
             console.error('[AI_GENERATION_FAILED]', {

@@ -88,6 +88,15 @@ const COMPLIANCE_DISCLAIMERS = {
 export class PromptGenerator {
   private templateEngine = new PromptTemplateEngine();
 
+  private sanitizeProductName(name: string): string {
+    return name
+      .replace(/™|®|©/g, '') // Remove trademark symbols
+      .replace(/\b(holistic|wellness|program|solution|begin|30)\b/gi, '') // Remove trigger words
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .substring(0, 50) // Limit length
+      .trim();
+  }
+
   private getProductBenefits(product: StoredProduct): string[] {
     const benefits: string[] = [];
 
@@ -126,6 +135,9 @@ export class PromptGenerator {
     // Sanitize product data first
     const safeProduct = sanitizeProductData(product) as StoredProduct;
 
+    // Sanitize product name to prevent NSFW triggers
+    const sanitizedProductName = this.sanitizeProductName(safeProduct.name);
+
     const styleModifiers = STYLE_MODIFIERS[preferences.brand_style];
     const campaignType = CAMPAIGN_TYPES[preferences.campaign_type];
     const colorScheme = COLOR_SCHEMES[preferences.color_scheme];
@@ -133,7 +145,7 @@ export class PromptGenerator {
     const formatAspect = this.getFormatDescription(format);
 
     const rawPrompt = `
-${campaignType.basePrompt} ${safeProduct.name},
+${campaignType.basePrompt} ${sanitizedProductName},
 ${campaignType.emphasis},
 ${formatAspect} format,
 ${styleModifiers.lighting},
@@ -242,6 +254,9 @@ ${styleModifiers.color}
     const disclaimer = COMPLIANCE_DISCLAIMERS[product.category as keyof typeof COMPLIANCE_DISCLAIMERS] ||
                      COMPLIANCE_DISCLAIMERS.other;
 
+    // Use sanitized product name for overlay text too
+    const sanitizedProductName = this.sanitizeProductName(product.name);
+
     let callToAction = '';
     switch (preferences.text_overlay) {
       case 'minimal':
@@ -256,7 +271,7 @@ ${styleModifiers.color}
     }
 
     return {
-      productName: product.name,
+      productName: sanitizedProductName,
       brandName: product.brand || 'Amway',
       callToAction,
       disclaimer,

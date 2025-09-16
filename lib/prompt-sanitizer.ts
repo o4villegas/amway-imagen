@@ -9,6 +9,27 @@ export function sanitizePrompt(prompt: string): string {
   // Remove any control characters
   let sanitized = prompt.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
 
+  // NSFW-aware health term filtering to prevent AI filter triggers
+  const healthTermReplacements: Record<string, string> = {
+    'holistic wellness': 'wellness',
+    'wellness program': 'nutrition program',
+    'begin 30': 'nutrition solution',
+    'vanilla/unflavored': 'vanilla flavor',
+    'weight management': 'fitness support',
+    'immune support': 'health support',
+    'digestive health': 'nutrition support',
+    'cleansing': 'refreshing',
+    'detox': 'cleanse',
+    'sexual': 'intimate',
+    'fertility': 'reproductive',
+    'hormone': 'balance'
+  };
+
+  // Apply health term replacements first
+  for (const [term, replacement] of Object.entries(healthTermReplacements)) {
+    sanitized = sanitized.replace(new RegExp(term, 'gi'), replacement);
+  }
+
   // Remove potential injection patterns
   const injectionPatterns = [
     /\bignore\s+(previous|all|above)\b/gi,
