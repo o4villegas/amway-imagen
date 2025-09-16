@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { URLInput } from '@/components/campaign/URLInput';
+import { ProductBrowser } from '@/components/campaign/ProductBrowser';
+import { ManualProductEntry } from '@/components/campaign/ManualProductEntry';
 import { ProductPreview } from '@/components/campaign/ProductPreview';
 import { PreferencesPanel } from '@/components/campaign/PreferencesPanel';
 import { GenerationProgress } from '@/components/campaign/GenerationProgress';
@@ -11,7 +12,7 @@ import { ImageGallery } from '@/components/campaign/ImageGallery';
 import { ProgressIndicator } from '@/components/campaign/ProgressIndicator';
 import { StoredProduct } from '@/lib/db';
 
-export type CampaignStep = 'input' | 'configure' | 'generate' | 'preview' | 'download';
+export type CampaignStep = 'select' | 'configure' | 'generate' | 'preview' | 'download';
 
 export interface CampaignPreferences {
   campaign_type: 'product_focus' | 'lifestyle';
@@ -34,19 +35,34 @@ const defaultPreferences: CampaignPreferences = {
   brand_style: 'professional',
   color_scheme: 'amway_brand',
   text_overlay: 'moderate',
-  campaign_size: 10,
+  campaign_size: 3,
   image_formats: ['instagram_post', 'instagram_story']
 };
 
 export default function NewCampaign() {
-  const [step, setStep] = useState<CampaignStep>('input');
+  const [step, setStep] = useState<CampaignStep>('select');
   const [productInfo, setProductInfo] = useState<StoredProduct | null>(null);
   const [preferences, setPreferences] = useState<CampaignPreferences>(defaultPreferences);
   const [generationResult, setGenerationResult] = useState<GenerationResult | null>(null);
+  const [showManualEntry, setShowManualEntry] = useState(false);
 
-  const handleProductExtracted = (product: StoredProduct) => {
+  const handleProductSelected = (product: StoredProduct) => {
     setProductInfo(product);
     setStep('configure');
+  };
+
+  const handleManualEntry = () => {
+    setShowManualEntry(true);
+  };
+
+  const handleManualProductSaved = (product: StoredProduct) => {
+    setProductInfo(product);
+    setShowManualEntry(false);
+    setStep('configure');
+  };
+
+  const handleCancelManualEntry = () => {
+    setShowManualEntry(false);
   };
 
   const handlePreferencesComplete = () => {
@@ -67,10 +83,11 @@ export default function NewCampaign() {
   };
 
   const handleStartNewCampaign = () => {
-    setStep('input');
+    setStep('select');
     setProductInfo(null);
     setPreferences(defaultPreferences);
     setGenerationResult(null);
+    setShowManualEntry(false);
   };
 
   return (
@@ -100,8 +117,20 @@ export default function NewCampaign() {
 
         {/* Step Content */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          {step === 'input' && (
-            <URLInput onProductExtracted={handleProductExtracted} />
+          {step === 'select' && !showManualEntry && (
+            <ProductBrowser
+              onProductSelected={handleProductSelected}
+              onManualEntry={handleManualEntry}
+            />
+          )}
+
+          {step === 'select' && showManualEntry && (
+            <div className="overflow-hidden">
+              <ManualProductEntry
+                onProductSaved={handleManualProductSaved}
+                onCancel={handleCancelManualEntry}
+              />
+            </div>
           )}
 
           {step === 'configure' && productInfo && (

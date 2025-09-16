@@ -85,19 +85,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create campaign record
-    const campaignId = await dbManager.createCampaign({
-      product_id: productId,
-      campaign_type: preferences.campaign_type,
-      brand_style: preferences.brand_style,
-      color_scheme: preferences.color_scheme,
-      text_overlay: preferences.text_overlay,
-      campaign_size: preferences.campaign_size,
-      image_formats: preferences.image_formats,
-      status: 'generating'
-    });
+    let campaignId: number | undefined;
 
     try {
+      // Create campaign record
+      campaignId = await dbManager.createCampaign({
+        product_id: productId,
+        campaign_type: preferences.campaign_type,
+        brand_style: preferences.brand_style,
+        color_scheme: preferences.color_scheme,
+        text_overlay: preferences.text_overlay,
+        campaign_size: preferences.campaign_size,
+        image_formats: preferences.image_formats,
+        status: 'generating'
+      });
       // Generate prompts
       const promptGenerator = new PromptGenerator();
       const imagePrompts = promptGenerator.generateCampaignPrompts(product, preferences);
@@ -111,13 +112,14 @@ export async function POST(request: NextRequest) {
 
         const batchPromises = batch.map(async (prompt, batchIndex) => {
           try {
-            const aiInput = {
-              prompt: prompt.text,
-              num_steps: CAMPAIGN_CONFIG.AI_GENERATION_STEPS,
-              guidance: CAMPAIGN_CONFIG.AI_GUIDANCE_SCALE,
-              width: prompt.width,
-              height: prompt.height
-            };
+            // Ensure completely plain object for AI input to avoid serialization issues
+            const aiInput = JSON.parse(JSON.stringify({
+              prompt: String(prompt.text),
+              num_steps: Number(CAMPAIGN_CONFIG.AI_GENERATION_STEPS),
+              guidance: Number(CAMPAIGN_CONFIG.AI_GUIDANCE_SCALE),
+              width: Number(prompt.width),
+              height: Number(prompt.height)
+            }));
 
             // Log image generation attempt
             console.log(`Generating image ${i + batchIndex + 1} of ${imagePrompts.length}`);
@@ -127,11 +129,20 @@ export async function POST(request: NextRequest) {
               promptLength: prompt.text.length
             });
 
-            const response = await withTimeout(
-              AI.run('@cf/black-forest-labs/flux-1-schnell', aiInput),
-              TIMEOUTS.AI_GENERATION,
-              `AI generation for ${prompt.format}`
-            ) as { image?: string };
+            // In development, the AI binding may not work properly due to serialization issues
+            let response: { image?: string };
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('[DEV_MODE] Skipping AI generation - using mock response');
+              // Create a small 1x1 PNG in base64 for testing
+              const mockImage = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAGA=';
+              response = { image: mockImage };
+            } else {
+              response = await withTimeout(
+                AI.run('@cf/black-forest-labs/flux-1-schnell', aiInput),
+                TIMEOUTS.AI_GENERATION,
+                `AI generation for ${prompt.format}`
+              ) as { image?: string };
+            }
 
             if (!response || !response.image) {
               throw new Error('AI did not return image data');
@@ -147,30 +158,34 @@ export async function POST(request: NextRequest) {
 
             // Generate unique filename
             const filename = `${prompt.format}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
-            const r2Path = `campaigns/${campaignId}/images/${filename}`;
+            const r2Path = `campaigns/${campaignId!}/images/${filename}`;
 
             // Store image individually in R2 for preview
-            await withTimeout(
-              CAMPAIGN_STORAGE.put(r2Path, imageBuffer, {
-              httpMetadata: {
-                contentType: 'image/jpeg',
-                cacheControl: 'public, max-age=3600' // Cache for 1 hour
-              },
-              customMetadata: {
-                campaignId: campaignId.toString(),
-                format: prompt.format,
-                width: prompt.width.toString(),
-                height: prompt.height.toString()
-              }
-            }),
-              TIMEOUTS.R2_UPLOAD,
-              'R2 image upload'
-            );
+            if (process.env.NODE_ENV !== 'development') {
+              await withTimeout(
+                CAMPAIGN_STORAGE.put(r2Path, imageBuffer, {
+                httpMetadata: {
+                  contentType: 'image/jpeg',
+                  cacheControl: 'public, max-age=3600' // Cache for 1 hour
+                },
+                customMetadata: {
+                  campaignId: campaignId!.toString(),
+                  format: prompt.format,
+                  width: prompt.width.toString(),
+                  height: prompt.height.toString()
+                }
+              }),
+                TIMEOUTS.R2_UPLOAD,
+                'R2 image upload'
+              );
+            } else {
+              console.warn('[DEV_MODE] Skipping R2 upload in development');
+            }
 
             // Save to database with R2 path
             await withTimeout(
               dbManager.saveGeneratedImage({
-              campaign_id: campaignId,
+              campaign_id: campaignId!,
               format: prompt.format,
               prompt: prompt.text,
               file_path: filename,
@@ -257,22 +272,26 @@ export async function POST(request: NextRequest) {
       );
 
       // Upload to R2
-      const campaignKey = `campaigns/${campaignId}_${Date.now()}.zip`;
-      await withTimeout(
-        CAMPAIGN_STORAGE.put(campaignKey, zipBuffer, {
-        httpMetadata: {
-          contentType: 'application/zip'
-        },
-        customMetadata: {
-          campaignId: campaignId.toString(),
-          productId: productId.toString(),
-          totalImages: generatedImages.length.toString(),
-          createdAt: Date.now().toString()
-        }
-      }),
-        TIMEOUTS.R2_UPLOAD,
-        'ZIP upload to R2'
-      );
+      const campaignKey = `campaigns/${campaignId!}_${Date.now()}.zip`;
+      if (process.env.NODE_ENV !== 'development') {
+        await withTimeout(
+          CAMPAIGN_STORAGE.put(campaignKey, zipBuffer, {
+          httpMetadata: {
+            contentType: 'application/zip'
+          },
+          customMetadata: {
+            campaignId: campaignId!.toString(),
+            productId: productId.toString(),
+            totalImages: generatedImages.length.toString(),
+            createdAt: Date.now().toString()
+          }
+        }),
+          TIMEOUTS.R2_UPLOAD,
+          'ZIP upload to R2'
+        );
+      } else {
+        console.warn('[DEV_MODE] Skipping ZIP upload to R2 in development');
+      }
 
       // Generate download URL (expires based on config)
       const expiresAt = new Date(
@@ -281,7 +300,7 @@ export async function POST(request: NextRequest) {
       const downloadUrl = `/api/campaign/download/${campaignKey}`;
 
       // Update campaign with success
-      await dbManager.updateCampaignStatus(campaignId, 'completed', downloadUrl, expiresAt);
+      await dbManager.updateCampaignStatus(campaignId!, 'completed', downloadUrl, expiresAt);
 
       // Update stats
       const generationTime = (Date.now() - startTime) / 1000;
@@ -289,7 +308,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        campaignId,
+        campaignId: campaignId!,
         downloadUrl,
         expiresAt,
         totalImages: generatedImages.length,
@@ -304,8 +323,10 @@ export async function POST(request: NextRequest) {
         stage: 'generation'
       }, ['stack', 'prompt']);
 
-      // Update campaign with failure
-      await dbManager.updateCampaignStatus(campaignId, 'failed');
+      // Update campaign with failure (only if campaign was created)
+      if (campaignId) {
+        await dbManager.updateCampaignStatus(campaignId, 'failed');
+      }
 
       // Update stats
       const generationTime = (Date.now() - startTime) / 1000;
@@ -315,9 +336,11 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
-    console.error('[CAMPAIGN_GENERATION_ERROR]', {
+    // Enhanced error logging to find the real issue
+    console.error('[CAMPAIGN_GENERATION_ERROR] Full details:', {
       errorName: error?.name,
       errorMessage: error?.message,
+      errorStack: error?.stack?.substring(0, 500),
       timestamp: new Date().toISOString()
     });
 
@@ -327,6 +350,16 @@ export async function POST(request: NextRequest) {
     }, ['stack']);
 
     // Provide helpful error messages
+    if (error.message.includes('CHECK constraint failed: campaign_size')) {
+      return NextResponse.json(
+        {
+          error: 'Invalid campaign size. Please select 1, 3, or 5 images.',
+          validSizes: [1, 3, 5]
+        },
+        { status: 400 }
+      );
+    }
+
     if (error.message.includes('Failed to generate any images')) {
       return NextResponse.json(
         { error: 'AI image generation failed. Please try again with different preferences.' },

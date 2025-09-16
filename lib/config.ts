@@ -10,8 +10,8 @@ export const CAMPAIGN_CONFIG = {
   AI_GENERATION_STEPS: 4, // Fast generation for MVP
   AI_GUIDANCE_SCALE: 7.5,
 
-  // Campaign sizes
-  CAMPAIGN_SIZES: [1, 3, 5, 10, 15] as const,
+  // Campaign sizes - Limited for better performance and success rates
+  CAMPAIGN_SIZES: [1, 3, 5] as const,
 
   // Progress simulation
   PROGRESS_UPDATE_INTERVAL: 1500, // milliseconds

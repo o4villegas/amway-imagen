@@ -249,14 +249,19 @@ export function PreferencesPanel({ preferences, onChange, onComplete }: Preferen
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="5">5 Images - Quick Campaign</SelectItem>
-              <SelectItem value="10">10 Images - Standard Campaign</SelectItem>
-              <SelectItem value="15">15 Images - Comprehensive Campaign</SelectItem>
+              <SelectItem value="1">1 Image - Test Shot</SelectItem>
+              <SelectItem value="3">3 Images - Mini Campaign</SelectItem>
+              <SelectItem value="5">5 Images - Full Campaign</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-sm text-gray-500 mt-2">
             Total images will be distributed across selected formats
           </p>
+          {preferences.image_formats.length > preferences.campaign_size && (
+            <p className="text-sm text-amber-600 mt-1">
+              ⚠️ You&apos;ve selected more formats than images. Some formats may not receive images.
+            </p>
+          )}
         </CardContent>
       </Card>
 

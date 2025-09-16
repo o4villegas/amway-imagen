@@ -17,7 +17,49 @@ const nextConfig = {
         port: '',
         pathname: '/medias/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'campaign-storage.amway-image-generator.pages.dev',
+        port: '',
+        pathname: '/**',
+      },
+      // Allow common image hosting domains for manual entry
+      {
+        protocol: 'https',
+        hostname: '*.amazonaws.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+        port: '',
+        pathname: '/**',
+      },
+      // Allow localhost for image proxy during development
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3000',
+        pathname: '/api/**',
+      },
+      // Allow production domain for image proxy
+      {
+        protocol: 'https',
+        hostname: '854c4310.amway-image-generator.pages.dev',
+        port: '',
+        pathname: '/api/**',
+      }
     ],
+    // Allow data URLs for development mode base64 images
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 };
 

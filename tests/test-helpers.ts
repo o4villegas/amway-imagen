@@ -28,7 +28,7 @@ export const MOCK_CAMPAIGN_PREFERENCES = {
   brand_style: 'professional' as const,
   color_scheme: 'amway_brand' as const,
   text_overlay: 'moderate' as const,
-  campaign_size: 5 as const,
+  campaign_size: 3 as const,
   image_formats: ['instagram_post', 'instagram_story'] as const
 };
 

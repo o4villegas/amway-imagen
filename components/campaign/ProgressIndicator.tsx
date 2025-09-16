@@ -15,7 +15,7 @@ interface StepConfig {
 }
 
 const STEPS: StepConfig[] = [
-  { id: 'input', number: 1, label: 'Product URL', shortLabel: 'URL' },
+  { id: 'select', number: 1, label: 'Select Product', shortLabel: 'Select' },
   { id: 'configure', number: 2, label: 'Configure', shortLabel: 'Config' },
   { id: 'generate', number: 3, label: 'Generate', shortLabel: 'Generate' },
   { id: 'preview', number: 4, label: 'Preview', shortLabel: 'Preview' },

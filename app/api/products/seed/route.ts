@@ -16,7 +16,7 @@ const SEED_PRODUCTS = [
     brand: 'Nutrilite',
     price: 89.95,
     currency: 'USD',
-    main_image_url: null,
+    main_image_url: '/api/placeholder-image',
     inventory_status: 'available'
   },
   {
@@ -28,7 +28,7 @@ const SEED_PRODUCTS = [
     brand: 'XS',
     price: 32.50,
     currency: 'USD',
-    main_image_url: null,
+    main_image_url: '/api/placeholder-image',
     inventory_status: 'available'
   },
   {
@@ -40,7 +40,7 @@ const SEED_PRODUCTS = [
     brand: 'Artistry',
     price: 24.00,
     currency: 'USD',
-    main_image_url: null,
+    main_image_url: '/api/placeholder-image',
     inventory_status: 'available'
   },
   {
@@ -52,7 +52,7 @@ const SEED_PRODUCTS = [
     brand: 'Nutrilite',
     price: 199.95,
     currency: 'USD',
-    main_image_url: null,
+    main_image_url: '/api/placeholder-image',
     inventory_status: 'available'
   },
   {
@@ -64,7 +64,7 @@ const SEED_PRODUCTS = [
     brand: 'SA8',
     price: 21.95,
     currency: 'USD',
-    main_image_url: null,
+    main_image_url: '/api/placeholder-image',
     inventory_status: 'available'
   }
 ];
@@ -93,11 +93,39 @@ export async function POST(request: NextRequest) {
         const existingProduct = await dbManager.getProduct(seedUrl);
 
         if (existingProduct) {
-          results.push({
-            productId: productData.amway_product_id,
-            status: 'already_exists',
-            name: productData.name
-          });
+          // Update existing product if it doesn't have an image URL
+          if (!existingProduct.main_image_url || existingProduct.main_image_url === null) {
+            try {
+              await DB.prepare(`
+                UPDATE products
+                SET main_image_url = ?
+                WHERE id = ?
+              `).bind('/api/placeholder-image', existingProduct.id).run();
+
+              results.push({
+                productId: productData.amway_product_id,
+                status: 'updated',
+                name: productData.name,
+                id: existingProduct.id,
+                message: 'Added placeholder image URL'
+              });
+            } catch (updateError: any) {
+              results.push({
+                productId: productData.amway_product_id,
+                status: 'update_failed',
+                name: productData.name,
+                id: existingProduct.id,
+                error: updateError.message
+              });
+            }
+          } else {
+            results.push({
+              productId: productData.amway_product_id,
+              status: 'already_exists',
+              name: productData.name,
+              id: existingProduct.id
+            });
+          }
           continue;
         }
 
@@ -129,8 +157,9 @@ export async function POST(request: NextRequest) {
     }
 
     const successful = results.filter(r => r.status === 'created');
+    const updated = results.filter(r => r.status === 'updated');
     const existing = results.filter(r => r.status === 'already_exists');
-    const failed = results.filter(r => r.status === 'failed');
+    const failed = results.filter(r => r.status === 'failed' || r.status === 'update_failed');
 
     return NextResponse.json({
       success: true,
@@ -138,6 +167,7 @@ export async function POST(request: NextRequest) {
       summary: {
         total: SEED_PRODUCTS.length,
         created: successful.length,
+        updated: updated.length,
         existing: existing.length,
         failed: failed.length
       },

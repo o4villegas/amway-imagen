@@ -5,8 +5,9 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Workers AI Image Playground",
-  description: "Playground for generating images with Cloudflare Workers AI models",
+  title: "Amway IBO Image Campaign Generator",
+  description: "Generate professional marketing images for your Amway products",
+  viewport: "width=device-width, initial-scale=1",
 };
 
 export default function RootLayout({
