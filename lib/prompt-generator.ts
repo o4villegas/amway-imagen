@@ -238,7 +238,7 @@ export class PromptGenerator {
     // Rebuild with essential elements only
     const sanitizedProductName = this.sanitizeProductName(product.name);
     const styleModifiers = STYLE_MODIFIERS.professional; // Use professional as safe default
-    const campaignTypeConfig = CAMPAIGN_TYPES[campaignType] || CAMPAIGN_TYPES.product_focus;
+    const campaignTypeConfig = CAMPAIGN_TYPES[campaignType as keyof typeof CAMPAIGN_TYPES] || CAMPAIGN_TYPES.product_focus;
 
     const fallbackPrompt = `
 ${campaignTypeConfig.basePrompt} ${sanitizedProductName},
