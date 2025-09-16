@@ -12,9 +12,10 @@ export async function GET(
     const { CAMPAIGN_STORAGE } = context.env;
 
     // Reconstruct the full key from the path segments
-    const campaignKey = `campaigns/${params.key.join('/')}`;
+    // The path already includes "campaigns/" prefix, so join directly
+    const campaignKey = params.key.join('/');
 
-    console.log(`Downloading campaign: ${campaignKey}`);
+    // Downloading campaign
 
     // Get the ZIP file from R2
     const object = await CAMPAIGN_STORAGE.get(campaignKey);

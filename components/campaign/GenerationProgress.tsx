@@ -7,6 +7,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { StoredProduct } from '@/lib/db';
 import { CampaignPreferences, GenerationResult } from '@/app/campaign/new/page';
 import { Loader2, Zap, Check, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { ErrorBoundary, CampaignErrorFallback } from '@/components/ErrorBoundary';
+import { CAMPAIGN_CONFIG } from '@/lib/config';
 
 interface GenerationProgressProps {
   product: StoredProduct;
@@ -16,7 +18,7 @@ interface GenerationProgressProps {
 
 type GenerationStatus = 'starting' | 'generating' | 'packaging' | 'completed' | 'error';
 
-export function GenerationProgress({ product, preferences, onComplete }: GenerationProgressProps) {
+function GenerationProgressContent({ product, preferences, onComplete }: GenerationProgressProps) {
   const [status, setStatus] = useState<GenerationStatus>('starting');
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState('Initializing...');
@@ -52,20 +54,22 @@ export function GenerationProgress({ product, preferences, onComplete }: Generat
       // Simulate progress updates during generation
       const progressInterval = setInterval(() => {
         setProgress(prev => {
-          if (prev >= 85) {
+          if (prev >= CAMPAIGN_CONFIG.MAX_SIMULATED_PROGRESS) {
             clearInterval(progressInterval);
-            return 85;
+            return CAMPAIGN_CONFIG.MAX_SIMULATED_PROGRESS;
           }
           const increment = Math.random() * 10 + 5;
-          const newProgress = Math.min(prev + increment, 85);
+          const newProgress = Math.min(prev + increment, CAMPAIGN_CONFIG.MAX_SIMULATED_PROGRESS);
 
           // Update generated count based on progress
-          const estimatedGenerated = Math.floor((newProgress / 85) * preferences.campaign_size);
+          const estimatedGenerated = Math.floor(
+            (newProgress / CAMPAIGN_CONFIG.MAX_SIMULATED_PROGRESS) * preferences.campaign_size
+          );
           setGeneratedCount(estimatedGenerated);
 
           return newProgress;
         });
-      }, 1500);
+      }, CAMPAIGN_CONFIG.PROGRESS_UPDATE_INTERVAL);
 
       const result = await response.json() as {
         success: boolean;
@@ -282,5 +286,14 @@ export function GenerationProgress({ product, preferences, onComplete }: Generat
         </div>
       </div>
     </div>
+  );
+}
+
+// Wrap with error boundary
+export function GenerationProgress(props: GenerationProgressProps) {
+  return (
+    <ErrorBoundary fallback={CampaignErrorFallback}>
+      <GenerationProgressContent {...props} />
+    </ErrorBoundary>
   );
 }

@@ -22,7 +22,17 @@ binding = "DB"
 database_name = "amway-image-gen"
 database_id = "a045519c-a814-4160-8bbe-5b3a4df6c55b"
 
+# Analytics and observability
+[observability]
+enabled = true
+
+# Logpush for structured logging (optional - requires additional setup)
+# [logpush]
+# enabled = true
+
 [vars]
 CLOUDFLARE_ACCOUNT_ID = "dc56444c4c955a1653106ccf997c1067"
 CAMPAIGN_EXPIRY_HOURS = "24"
 MAX_IMAGES_PER_CAMPAIGN = "15"
+# Environment for logging
+NODE_ENV = "production"

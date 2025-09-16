@@ -1,0 +1,97 @@
+{
+  "timestamp": "2025-09-16T00:23:40.777Z",
+  "tests": [
+    {
+      "name": "Application Accessibility",
+      "status": "PASSED",
+      "details": {
+        "urlInput": true,
+        "submitButton": true,
+        "progressIndicator": false,
+        "exampleUrls": true
+      },
+      "critical": false
+    },
+    {
+      "name": "Product Scraping - https://www.amway.com/en_US/p/326782",
+      "status": "PASSED",
+      "details": {
+        "productName": "Nutrilite™ Begin 30 Holistic Wellness Program Solution - Vanilla/Unflavored",
+        "hasDescription": true,
+        "hasCategory": true,
+        "hasPrice": false,
+        "hasImage": true,
+        "cached": true
+      },
+      "critical": false
+    },
+    {
+      "name": "Product Scraping - https://www.amway.com/en_US/Nutrilite-Daily-p-100186",
+      "status": "PASSED",
+      "details": {
+        "productName": "eSpring™ UV Water Purifier Replacement Filter Cartridge With UV Technology",
+        "hasDescription": true,
+        "hasCategory": true,
+        "hasPrice": false,
+        "hasImage": true,
+        "cached": false
+      },
+      "critical": false
+    },
+    {
+      "name": "Product Scraping - https://www.amway.com/en_US/Sleep-%2B-Stress-Solution-p-321893",
+      "status": "PASSED",
+      "details": {
+        "productName": "Sleep + Stress Solution",
+        "hasDescription": true,
+        "hasCategory": true,
+        "hasPrice": false,
+        "hasImage": true,
+        "cached": false
+      },
+      "critical": false
+    },
+    {
+      "name": "Error Handling - Invalid URL",
+      "status": "FAILED",
+      "details": {
+        "expectedStatus": 400,
+        "actualStatus": 500,
+        "errorMessage": "Failed to scrape product information. Please try again later."
+      },
+      "critical": false
+    },
+    {
+      "name": "Error Handling - Non-Amway URL",
+      "status": "FAILED",
+      "details": {
+        "expectedStatus": 400,
+        "actualStatus": 500,
+        "errorMessage": "Failed to scrape product information. Please try again later."
+      },
+      "critical": false
+    },
+    {
+      "name": "Error Handling - Malformed URL",
+      "status": "FAILED",
+      "details": {
+        "expectedStatus": 400,
+        "actualStatus": 500,
+        "errorMessage": "Failed to scrape product information. Please try again later."
+      },
+      "critical": false
+    },
+    {
+      "name": "Campaign Generation API",
+      "status": "FAILED",
+      "error": "AI image generation failed. Please try again with different preferences.",
+      "critical": true
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "passed": 4,
+    "failed": 4,
+    "critical": 1
+  }
+}

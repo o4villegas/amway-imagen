@@ -1,5 +1,7 @@
 // Product scraping utilities for Amway website
 
+import { USER_AGENTS } from './config';
+
 export interface ScrapedProduct {
   amway_product_id: string;
   name: string;
@@ -55,6 +57,9 @@ export function extractProductId(url: string): string | null {
 }
 
 export class AmwayProductScraper {
+  private getRandomUserAgent(): string {
+    return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+  }
   private cleanHtmlDescription(htmlText: string): string {
     // Remove HTML tags and decode entities
     return htmlText
@@ -169,7 +174,7 @@ export class AmwayProductScraper {
       const response = await fetch(url, {
         signal: controller.signal,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'User-Agent': this.getRandomUserAgent(),
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.5',
           'Accept-Encoding': 'gzip, deflate, br',

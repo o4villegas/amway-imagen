@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, ExternalLink, CheckCircle, AlertCircle } from 'lucide-react';
 import { StoredProduct } from '@/lib/db';
+import { FormLoadingOverlay } from '@/components/ui/LoadingState';
 
 interface URLInputProps {
   onProductExtracted: (product: StoredProduct) => void;
@@ -14,16 +15,37 @@ export function URLInput({ onProductExtracted }: URLInputProps) {
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isValidUrl, setIsValidUrl] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Ensure component is mounted on client-side
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Real-time validation effect
+  React.useEffect(() => {
+    if (!isMounted) return; // Only validate after client hydration
+
+    const isValid = validateUrl(url);
+    setIsValidUrl(isValid);
+  }, [url, isMounted, isValidUrl]);
 
   const validateUrl = (inputUrl: string): boolean => {
+    if (!inputUrl.trim()) return false;
+
     try {
       const parsedUrl = new URL(inputUrl);
       const domain = parsedUrl.hostname.replace('www.', '');
-      return domain.endsWith('amway.com') && (
-        parsedUrl.pathname.includes('/p/') ||
-        !!parsedUrl.pathname.match(/-p-\d+/)
-      );
-    } catch {
+      const isAmwayDomain = domain.endsWith('amway.com');
+      const hasProductPath = parsedUrl.pathname.includes('/p/') ||
+                          parsedUrl.pathname.includes('/p-') ||
+                          !!parsedUrl.pathname.match(/-p-\d+/);
+
+      // URL validation complete
+
+      return isAmwayDomain && hasProductPath;
+    } catch (error) {
       return false;
     }
   };
@@ -88,7 +110,8 @@ export function URLInput({ onProductExtracted }: URLInputProps) {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <FormLoadingOverlay isLoading={isLoading} message="Extracting product information...">
+        <form onSubmit={handleSubmit} className="space-y-4" aria-label="Product URL submission form">
         <div>
           <label htmlFor="product-url" className="block text-sm font-medium text-gray-700 mb-2">
             Product URL
@@ -99,37 +122,53 @@ export function URLInput({ onProductExtracted }: URLInputProps) {
               type="url"
               placeholder="https://www.amway.com/en_US/Product-Name-p-123456"
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              onChange={(e) => {
+                const newUrl = e.target.value;
+                setUrl(newUrl);
+                setError(null); // Clear error when user types
+              }}
               className={`pr-10 ${error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
               disabled={isLoading}
+              aria-label="Amway product URL"
+              aria-invalid={!!error}
+              aria-describedby={error ? 'url-error' : 'url-help'}
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-3">
               <ExternalLink className="h-4 w-4 text-gray-400" />
             </div>
           </div>
           {error && (
-            <div className="mt-2 flex items-center text-sm text-red-600">
-              <AlertCircle className="h-4 w-4 mr-1" />
+            <div id="url-error" role="alert" className="mt-2 flex items-center text-sm text-red-600">
+              <AlertCircle className="h-4 w-4 mr-1" aria-hidden="true" />
               {error}
             </div>
+          )}
+          {!error && (
+            <span id="url-help" className="sr-only">
+              Enter a valid Amway product page URL
+            </span>
           )}
         </div>
 
         <Button
           type="submit"
-          disabled={isLoading || !url.trim()}
+          disabled={isLoading || !url.trim() || (!isValidUrl && isMounted)}
           className="w-full"
+          size="mobile"
+          aria-busy={isLoading}
+          aria-label={isLoading ? 'Extracting product information' : 'Extract product information'}
         >
           {isLoading ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
               Extracting Product Info...
             </>
           ) : (
             'Extract Product Information'
           )}
         </Button>
-      </form>
+        </form>
+      </FormLoadingOverlay>
 
       <div className="border-t pt-6">
         <h3 className="text-sm font-medium text-gray-700 mb-3">
@@ -140,9 +179,13 @@ export function URLInput({ onProductExtracted }: URLInputProps) {
             <button
               key={index}
               type="button"
-              onClick={() => setUrl(exampleUrl)}
+              onClick={() => {
+                setUrl(exampleUrl);
+                setError(null);
+              }}
               className="block w-full text-left text-sm text-blue-600 hover:text-blue-800 hover:underline"
               disabled={isLoading}
+              aria-label={`Use example URL: ${exampleUrl}`}
             >
               {exampleUrl}
             </button>
@@ -150,9 +193,9 @@ export function URLInput({ onProductExtracted }: URLInputProps) {
         </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4" role="region" aria-label="Supported product information">
         <div className="flex">
-          <CheckCircle className="h-5 w-5 text-blue-400 mt-0.5 mr-3" />
+          <CheckCircle className="h-5 w-5 text-blue-400 mt-0.5 mr-3" aria-hidden="true" />
           <div>
             <h3 className="text-sm font-medium text-blue-800 mb-1">
               Supported Product Pages

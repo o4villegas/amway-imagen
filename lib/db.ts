@@ -31,8 +31,10 @@ export interface GeneratedImage {
   format: 'instagram_post' | 'instagram_story' | 'facebook_cover' | 'pinterest';
   prompt: string;
   file_path?: string;
+  r2_path?: string;
   width: number;
   height: number;
+  selected?: boolean;
   generated_at?: string;
 }
 
@@ -237,16 +239,20 @@ export class DatabaseManager {
           format,
           prompt,
           file_path,
+          r2_path,
           width,
-          height
-        ) VALUES (?, ?, ?, ?, ?, ?)
+          height,
+          selected
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         image.campaign_id,
         image.format,
         image.prompt,
-        image.file_path,
+        image.file_path || null,
+        image.r2_path || null,
         image.width,
-        image.height
+        image.height,
+        image.selected !== undefined ? image.selected : true
       ).run();
     } catch (error) {
       console.error('Error saving generated image:', error);
@@ -294,6 +300,17 @@ export class DatabaseManager {
     } catch (error) {
       console.error('Error getting user campaigns:', error);
       return [];
+    }
+  }
+
+  async updateImageSelection(imageId: number, selected: boolean): Promise<void> {
+    try {
+      await this.db.prepare(
+        'UPDATE generated_images SET selected = ? WHERE id = ?'
+      ).bind(selected, imageId).run();
+    } catch (error) {
+      console.error('Error updating image selection:', error);
+      throw error;
     }
   }
 

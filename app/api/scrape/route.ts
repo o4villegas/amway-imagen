@@ -3,6 +3,8 @@ import { getRequestContext } from '@cloudflare/next-on-pages';
 import { AmwayProductScraper, validateAmwayURL } from '@/lib/scraper';
 import { DatabaseManager } from '@/lib/db';
 import { rateLimiters } from '@/lib/rate-limiter';
+import { urlSchema, validateRequest, safeLog } from '@/lib/validation';
+import { withTimeout, withRetry, TIMEOUTS } from '@/lib/timeout-utils';
 
 export const runtime = 'edge';
 
@@ -24,24 +26,13 @@ export async function POST(request: NextRequest) {
     const context = getRequestContext();
     const { DB } = context.env;
 
-    const { productUrl } = await request.json() as { productUrl: string };
+    // Validate and sanitize input
+    const requestData = await request.json();
+    const { productUrl } = validateRequest(urlSchema, requestData);
 
-    if (!productUrl || typeof productUrl !== 'string') {
-      return NextResponse.json(
-        { error: 'Product URL is required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate URL
-    if (!validateAmwayURL(productUrl)) {
-      return NextResponse.json(
-        {
-          error: 'Invalid Amway product URL. Please provide a valid amway.com product page URL.'
-        },
-        { status: 400 }
-      );
-    }
+    safeLog('Product scraping request received', {
+      url: productUrl.substring(0, 50) + '...' // Log only partial URL
+    });
 
     const dbManager = new DatabaseManager(DB);
 
@@ -62,12 +53,41 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Scrape fresh data
+    // Scrape fresh data with retry logic
     const scraper = new AmwayProductScraper();
-    const productData = await scraper.scrapeProduct(productUrl);
+    const productData = await withRetry(
+      async () => await withTimeout(
+        scraper.scrapeProduct(productUrl),
+        TIMEOUTS.SCRAPE,
+        'Product scraping'
+      ),
+      {
+        maxAttempts: 3,
+        initialDelayMs: 1000,
+        backoffMultiplier: 2,
+        shouldRetry: (error) => {
+          // Don't retry client errors
+          if (error.message?.includes('Invalid Amway product URL')) return false;
+          if (error.message?.includes('HTTP 404')) return false;
+          if (error.message?.includes('HTTP 400')) return false;
+          // Retry on timeout or server errors
+          return true;
+        },
+        onRetry: (error, attempt, delayMs) => {
+          safeLog(`Retrying scrape attempt ${attempt}`, {
+            delay: delayMs,
+            errorType: error?.name || 'Unknown'
+          });
+        }
+      }
+    );
 
-    // Save to database
-    const savedProduct = await dbManager.saveProduct(productUrl, productData);
+    // Save to database with timeout
+    const savedProduct = await withTimeout(
+      dbManager.saveProduct(productUrl, productData),
+      TIMEOUTS.DB_OPERATION,
+      'Database save'
+    );
 
     return NextResponse.json({
       success: true,
@@ -76,7 +96,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Scraping error:', error);
+    safeLog('Scraping error occurred', {
+      errorType: error?.name || 'Unknown',
+      message: error?.message || 'No message'
+    }, ['stack', 'productUrl']);
 
     // Return appropriate error messages
     if (error.message.includes('Invalid Amway product URL')) {

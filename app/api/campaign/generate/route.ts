@@ -5,6 +5,9 @@ import { PromptGenerator } from '@/lib/prompt-generator';
 import { ZipCreator, CampaignFile, CampaignMetadata } from '@/lib/zip-creator';
 import { CampaignPreferences } from '@/app/campaign/new/page';
 import { rateLimiters } from '@/lib/rate-limiter';
+import { generateCampaignSchema, validateRequest, safeLog } from '@/lib/validation';
+import { withTimeout, TIMEOUTS, TimeoutError } from '@/lib/timeout-utils';
+import { CAMPAIGN_CONFIG } from '@/lib/config';
 
 export const runtime = 'edge';
 
@@ -15,6 +18,7 @@ export async function POST(request: NextRequest) {
     // Apply rate limiting
     const rateLimitResult = await rateLimiters.generate.isAllowed(request);
     if (!rateLimitResult.allowed) {
+      console.error('[RATE_LIMIT] Generation blocked', { retryAfter: rateLimitResult.retryAfter });
       return NextResponse.json(
         { error: 'Too many generation requests. Please try again later.' },
         {
@@ -25,20 +29,41 @@ export async function POST(request: NextRequest) {
         }
       );
     }
+    // Get context and verify bindings
     const context = getRequestContext();
     const { AI, CAMPAIGN_STORAGE, DB } = context.env;
 
-    const { productId, preferences }: {
-      productId: number;
-      preferences: CampaignPreferences;
-    } = await request.json();
-
-    if (!productId || !preferences) {
+    // Critical: Check if AI binding exists
+    if (!AI) {
+      console.error('[CRITICAL] AI binding not available in production!', {
+        hasAI: false,
+        hasStorage: !!CAMPAIGN_STORAGE,
+        hasDB: !!DB,
+        env: process.env.NODE_ENV,
+        timestamp: new Date().toISOString()
+      });
       return NextResponse.json(
-        { error: 'Product ID and preferences are required' },
-        { status: 400 }
+        { error: 'AI service is not configured. Please contact support.' },
+        { status: 500 }
       );
     }
+
+    // Log successful binding verification
+    console.log('[BINDINGS_CHECK] All services available', {
+      hasAI: true,
+      hasStorage: !!CAMPAIGN_STORAGE,
+      hasDB: !!DB
+    });
+
+    // Validate and sanitize input
+    const requestData = await request.json();
+    const { productId, preferences } = validateRequest(generateCampaignSchema, requestData);
+
+    safeLog('Campaign generation started', {
+      productId,
+      campaignType: preferences.campaign_type,
+      campaignSize: preferences.campaign_size
+    });
 
     const dbManager = new DatabaseManager(DB);
 
@@ -69,7 +94,7 @@ export async function POST(request: NextRequest) {
       const imagePrompts = promptGenerator.generateCampaignPrompts(product, preferences);
 
       const generatedImages: CampaignFile[] = [];
-      const maxConcurrent = 3; // Limit concurrent AI requests
+      const maxConcurrent = CAMPAIGN_CONFIG.MAX_CONCURRENT_GENERATIONS;
 
       // Process images in batches
       for (let i = 0; i < imagePrompts.length; i += maxConcurrent) {
@@ -79,15 +104,22 @@ export async function POST(request: NextRequest) {
           try {
             const aiInput = {
               prompt: prompt.text,
-              num_steps: 4, // Fast generation for MVP
-              guidance: 7.5,
+              num_steps: CAMPAIGN_CONFIG.AI_GENERATION_STEPS,
+              guidance: CAMPAIGN_CONFIG.AI_GUIDANCE_SCALE,
               width: prompt.width,
               height: prompt.height
             };
 
-            console.log(`Generating image ${i + 1}: ${prompt.text.substring(0, 100)}...`);
+            safeLog(`Generating image ${i + 1}`, {
+              format: prompt.format,
+              promptLength: prompt.text.length
+            });
 
-            const response = await AI.run('@cf/black-forest-labs/flux-1-schnell', aiInput);
+            const response = await withTimeout(
+              AI.run('@cf/black-forest-labs/flux-1-schnell', aiInput),
+              TIMEOUTS.AI_GENERATION,
+              `AI generation for ${prompt.format}`
+            ) as { image?: string };
 
             if (!response || !response.image) {
               throw new Error('AI did not return image data');
@@ -101,16 +133,43 @@ export async function POST(request: NextRequest) {
               imageArray[j] = binaryString.charCodeAt(j);
             }
 
-            // Save to database
+            // Generate unique filename
             const filename = `${prompt.format}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
-            await dbManager.saveGeneratedImage({
+            const r2Path = `campaigns/${campaignId}/images/${filename}`;
+
+            // Store image individually in R2 for preview
+            await withTimeout(
+              CAMPAIGN_STORAGE.put(r2Path, imageBuffer, {
+              httpMetadata: {
+                contentType: 'image/jpeg',
+                cacheControl: 'public, max-age=3600' // Cache for 1 hour
+              },
+              customMetadata: {
+                campaignId: campaignId.toString(),
+                format: prompt.format,
+                width: prompt.width.toString(),
+                height: prompt.height.toString()
+              }
+            }),
+              TIMEOUTS.R2_UPLOAD,
+              'R2 image upload'
+            );
+
+            // Save to database with R2 path
+            await withTimeout(
+              dbManager.saveGeneratedImage({
               campaign_id: campaignId,
               format: prompt.format,
               prompt: prompt.text,
               file_path: filename,
+              r2_path: r2Path,
               width: prompt.width,
-              height: prompt.height
-            });
+              height: prompt.height,
+              selected: true // Default to selected
+            }),
+              TIMEOUTS.DB_OPERATION,
+              'Database save'
+            );
 
             return {
               filename: filename,
@@ -118,8 +177,27 @@ export async function POST(request: NextRequest) {
               format: prompt.format
             } as CampaignFile;
 
-          } catch (error) {
-            console.error(`Failed to generate image for prompt: ${prompt.text.substring(0, 50)}...`, error);
+          } catch (error: any) {
+            const errorMessage = error instanceof TimeoutError
+              ? `Timeout after ${error.timeoutMs}ms`
+              : error?.message || error?.name || 'Unknown';
+
+            // Critical: Log detailed AI failure information
+            console.error('[AI_GENERATION_FAILED]', {
+              format: prompt.format,
+              errorType: error?.name,
+              errorMessage: errorMessage,
+              errorCode: error?.code,
+              errorDetails: error?.details,
+              isTimeout: error instanceof TimeoutError,
+              timestamp: new Date().toISOString()
+            });
+
+            safeLog('Image generation failed', {
+              format: prompt.format,
+              errorType: errorMessage,
+              isTimeout: error instanceof TimeoutError
+            }, ['prompt', 'stack']);
             // Return null for failed generations - we'll filter these out
             return null;
           }
@@ -129,10 +207,21 @@ export async function POST(request: NextRequest) {
         const successfulImages = batchResults.filter((result): result is CampaignFile => result !== null);
         generatedImages.push(...successfulImages);
 
-        console.log(`Batch ${Math.floor(i / maxConcurrent) + 1} completed: ${successfulImages.length}/${batch.length} successful`);
+        safeLog(`Batch ${Math.floor(i / maxConcurrent) + 1} completed`, {
+          successful: successfulImages.length,
+          total: batch.length,
+          successRate: (successfulImages.length / batch.length) * 100
+        });
       }
 
       if (generatedImages.length === 0) {
+        console.error('[CRITICAL_FAILURE] All image generations failed', {
+          requestedImages: imagePrompts.length,
+          successfulImages: 0,
+          campaignId,
+          productId,
+          timestamp: new Date().toISOString()
+        });
         throw new Error('Failed to generate any images');
       }
 
@@ -155,11 +244,16 @@ export async function POST(request: NextRequest) {
         usage: 'Created with Amway IBO Image Campaign Generator'
       };
 
-      const zipBuffer = await zipCreator.createCampaignZip(generatedImages, metadata);
+      const zipBuffer = await withTimeout(
+        zipCreator.createCampaignZip(generatedImages, metadata),
+        TIMEOUTS.ZIP_CREATION,
+        'ZIP file creation'
+      );
 
       // Upload to R2
       const campaignKey = `campaigns/${campaignId}_${Date.now()}.zip`;
-      await CAMPAIGN_STORAGE.put(campaignKey, zipBuffer, {
+      await withTimeout(
+        CAMPAIGN_STORAGE.put(campaignKey, zipBuffer, {
         httpMetadata: {
           contentType: 'application/zip'
         },
@@ -169,10 +263,15 @@ export async function POST(request: NextRequest) {
           totalImages: generatedImages.length.toString(),
           createdAt: Date.now().toString()
         }
-      });
+      }),
+        TIMEOUTS.R2_UPLOAD,
+        'ZIP upload to R2'
+      );
 
-      // Generate download URL (expires in 24 hours)
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      // Generate download URL (expires based on config)
+      const expiresAt = new Date(
+        Date.now() + CAMPAIGN_CONFIG.DOWNLOAD_EXPIRY_HOURS * 60 * 60 * 1000
+      ).toISOString();
       const downloadUrl = `/api/campaign/download/${campaignKey}`;
 
       // Update campaign with success
@@ -194,7 +293,10 @@ export async function POST(request: NextRequest) {
       });
 
     } catch (generationError: any) {
-      console.error('Campaign generation failed:', generationError);
+      safeLog('Campaign generation failed', {
+        errorType: generationError?.name || 'Unknown',
+        stage: 'generation'
+      }, ['stack', 'prompt']);
 
       // Update campaign with failure
       await dbManager.updateCampaignStatus(campaignId, 'failed');
@@ -207,7 +309,10 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
-    console.error('Campaign generation error:', error);
+    safeLog('Campaign generation error', {
+      errorType: error?.name || 'Unknown',
+      stage: 'overall'
+    }, ['stack']);
 
     // Provide helpful error messages
     if (error.message.includes('Failed to generate any images')) {

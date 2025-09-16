@@ -1,0 +1,28 @@
+[
+  {
+    "type": "CAMPAIGN_GENERATION_FAILURE",
+    "severity": "Critical",
+    "blocking": "Users cannot generate marketing images",
+    "userGoal": "Create professional marketing images for their products",
+    "brokenWorkflow": [
+      "1. User successfully configures campaign preferences",
+      "2. User initiates image generation",
+      "3. FAILURE: AI generation fails or times out",
+      "4. User cannot complete core workflow or download results"
+    ],
+    "remediation": "Fix AI service integration, improve timeout handling, add retry mechanisms"
+  },
+  {
+    "type": "POOR_ERROR_RECOVERY",
+    "severity": "High",
+    "blocking": "Users get stuck when they make mistakes or encounter errors",
+    "userGoal": "Recover from input errors and continue workflow",
+    "brokenWorkflow": [
+      "1. User enters invalid or incorrect URL",
+      "2. System provides unclear or missing error messages",
+      "3. User cannot understand what went wrong or how to fix it",
+      "4. User abandons workflow or gets frustrated"
+    ],
+    "remediation": "Improve error messages, add input validation, provide clear recovery paths"
+  }
+]

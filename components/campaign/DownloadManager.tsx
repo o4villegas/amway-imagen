@@ -4,14 +4,15 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { GenerationResult } from '@/app/campaign/new/page';
-import { Download, Clock, FileArchive, RotateCcw, CheckCircle, Copy, ExternalLink } from 'lucide-react';
+import { Download, Clock, FileArchive, RotateCcw, CheckCircle, Copy, ExternalLink, ArrowLeft } from 'lucide-react';
 
 interface DownloadManagerProps {
   result: GenerationResult;
   onNewCampaign: () => void;
+  onBackToPreview?: () => void;
 }
 
-export function DownloadManager({ result, onNewCampaign }: DownloadManagerProps) {
+export function DownloadManager({ result, onNewCampaign, onBackToPreview }: DownloadManagerProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
@@ -214,6 +215,16 @@ export function DownloadManager({ result, onNewCampaign }: DownloadManagerProps)
 
       {/* Action Buttons */}
       <div className="flex justify-center space-x-4">
+        {onBackToPreview && (
+          <Button
+            onClick={onBackToPreview}
+            variant="outline"
+            size="lg"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Preview
+          </Button>
+        )}
         <Button
           onClick={onNewCampaign}
           variant="outline"

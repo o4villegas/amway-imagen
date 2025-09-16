@@ -1,14 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { URLInput } from '@/components/campaign/URLInput';
 import { ProductPreview } from '@/components/campaign/ProductPreview';
 import { PreferencesPanel } from '@/components/campaign/PreferencesPanel';
 import { GenerationProgress } from '@/components/campaign/GenerationProgress';
 import { DownloadManager } from '@/components/campaign/DownloadManager';
+import { ImageGallery } from '@/components/campaign/ImageGallery';
+import { ProgressIndicator } from '@/components/campaign/ProgressIndicator';
 import { StoredProduct } from '@/lib/db';
 
-export type CampaignStep = 'input' | 'configure' | 'generate' | 'download';
+export type CampaignStep = 'input' | 'configure' | 'generate' | 'preview' | 'download';
 
 export interface CampaignPreferences {
   campaign_type: 'product_focus' | 'lifestyle';
@@ -52,7 +55,15 @@ export default function NewCampaign() {
 
   const handleGenerationComplete = (result: GenerationResult) => {
     setGenerationResult(result);
+    setStep('preview');
+  };
+
+  const handlePreviewComplete = () => {
     setStep('download');
+  };
+
+  const handleBackToPreview = () => {
+    setStep('preview');
   };
 
   const handleStartNewCampaign = () => {
@@ -66,73 +77,26 @@ export default function NewCampaign() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Create Image Campaign
-          </h1>
-          <p className="text-gray-600">
-            Generate professional marketing images for your Amway products
-          </p>
+        <div className="mb-8 flex items-center gap-4">
+          <Image
+            src="/amway_logo.png"
+            alt="Amway"
+            width={120}
+            height={40}
+            className="h-10 w-auto"
+          />
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              IBO Image Campaign Generator
+            </h1>
+            <p className="text-gray-600">
+              Generate professional marketing images for your Amway products
+            </p>
+          </div>
         </div>
 
         {/* Progress Indicator */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-4">
-            <div className={`flex items-center ${step === 'input' ? 'text-blue-600' : 'text-green-600'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                step === 'input' ? 'bg-blue-600 text-white' : 'bg-green-600 text-white'
-              }`}>
-                1
-              </div>
-              <span className="ml-2 font-medium">Product URL</span>
-            </div>
-
-            <div className={`h-px flex-1 ${step !== 'input' ? 'bg-green-600' : 'bg-gray-200'}`} />
-
-            <div className={`flex items-center ${
-              step === 'configure' ? 'text-blue-600' :
-              ['generate', 'download'].includes(step) ? 'text-green-600' :
-              'text-gray-400'
-            }`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                step === 'configure' ? 'bg-blue-600 text-white' :
-                ['generate', 'download'].includes(step) ? 'bg-green-600 text-white' :
-                'bg-gray-200 text-gray-600'
-              }`}>
-                2
-              </div>
-              <span className="ml-2 font-medium">Configure</span>
-            </div>
-
-            <div className={`h-px flex-1 ${['generate', 'download'].includes(step) ? 'bg-green-600' : 'bg-gray-200'}`} />
-
-            <div className={`flex items-center ${
-              step === 'generate' ? 'text-blue-600' :
-              step === 'download' ? 'text-green-600' :
-              'text-gray-400'
-            }`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                step === 'generate' ? 'bg-blue-600 text-white' :
-                step === 'download' ? 'bg-green-600 text-white' :
-                'bg-gray-200 text-gray-600'
-              }`}>
-                3
-              </div>
-              <span className="ml-2 font-medium">Generate</span>
-            </div>
-
-            <div className={`h-px flex-1 ${step === 'download' ? 'bg-green-600' : 'bg-gray-200'}`} />
-
-            <div className={`flex items-center ${step === 'download' ? 'text-green-600' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                step === 'download' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-600'
-              }`}>
-                4
-              </div>
-              <span className="ml-2 font-medium">Download</span>
-            </div>
-          </div>
-        </div>
+        <ProgressIndicator currentStep={step} />
 
         {/* Step Content */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -161,10 +125,26 @@ export default function NewCampaign() {
             />
           )}
 
+          {step === 'preview' && generationResult && (
+            <div className="p-6">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold mb-2">Preview & Select Images</h2>
+                <p className="text-gray-600">
+                  Review your generated images and select which ones to include in your campaign download.
+                </p>
+              </div>
+              <ImageGallery
+                campaignId={generationResult.campaignId}
+                onComplete={handlePreviewComplete}
+              />
+            </div>
+          )}
+
           {step === 'download' && generationResult && (
             <DownloadManager
               result={generationResult}
               onNewCampaign={handleStartNewCampaign}
+              onBackToPreview={handleBackToPreview}
             />
           )}
         </div>

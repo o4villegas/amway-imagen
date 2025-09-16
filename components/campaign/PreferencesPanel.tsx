@@ -264,7 +264,7 @@ export function PreferencesPanel({ preferences, onChange, onComplete }: Preferen
         <Button
           onClick={onComplete}
           disabled={!isValid()}
-          size="lg"
+          size="mobile"
           className="min-w-48"
         >
           Start Generating Images

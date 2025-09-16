@@ -2,6 +2,9 @@
 
 import { StoredProduct } from './db';
 import { CampaignPreferences } from '@/app/campaign/new/page';
+import { sanitizePrompt, sanitizeProductData, createSafePrompt } from './prompt-sanitizer';
+import { PromptTemplateEngine } from './prompt-templates';
+import { IMAGE_FORMATS } from './config';
 
 export interface ImagePrompt {
   text: string;
@@ -83,6 +86,8 @@ const COMPLIANCE_DISCLAIMERS = {
 } as const;
 
 export class PromptGenerator {
+  private templateEngine = new PromptTemplateEngine();
+
   private getProductBenefits(product: StoredProduct): string[] {
     const benefits: string[] = [];
 
@@ -118,14 +123,17 @@ export class PromptGenerator {
     preferences: CampaignPreferences,
     format: keyof typeof FORMAT_DIMENSIONS
   ): string {
+    // Sanitize product data first
+    const safeProduct = sanitizeProductData(product) as StoredProduct;
+
     const styleModifiers = STYLE_MODIFIERS[preferences.brand_style];
     const campaignType = CAMPAIGN_TYPES[preferences.campaign_type];
     const colorScheme = COLOR_SCHEMES[preferences.color_scheme];
-    const benefits = this.getProductBenefits(product);
+    const benefits = this.getProductBenefits(safeProduct);
     const formatAspect = this.getFormatDescription(format);
 
-    const prompt = `
-${campaignType.basePrompt} ${product.name},
+    const rawPrompt = `
+${campaignType.basePrompt} ${safeProduct.name},
 ${campaignType.emphasis},
 ${formatAspect} format,
 ${styleModifiers.lighting},
@@ -139,7 +147,8 @@ marketing quality,
 ${styleModifiers.color}
 `.replace(/\s+/g, ' ').trim();
 
-    return prompt;
+    // Sanitize the final prompt
+    return sanitizePrompt(rawPrompt);
   }
 
   private getFormatDescription(format: keyof typeof FORMAT_DIMENSIONS): string {
@@ -161,39 +170,69 @@ ${styleModifiers.color}
     basePrompt: string,
     product: StoredProduct,
     preferences: CampaignPreferences,
-    format: keyof typeof FORMAT_DIMENSIONS
+    format: keyof typeof FORMAT_DIMENSIONS,
+    count: number = 5
+  ): string[] {
+    // Use enhanced template system for better diversity
+    const enhancedPrompts = this.templateEngine.generateEnhancedPrompts(
+      product,
+      preferences,
+      format as keyof typeof IMAGE_FORMATS,
+      count
+    );
+
+    // Fallback to basic variations if enhanced system fails
+    if (enhancedPrompts.length === 0) {
+      return this.generateBasicVariations(basePrompt, preferences.campaign_type, format, count);
+    }
+
+    return enhancedPrompts;
+  }
+
+  private generateBasicVariations(
+    basePrompt: string,
+    campaignType: string,
+    format: keyof typeof FORMAT_DIMENSIONS,
+    count: number
   ): string[] {
     const variations: string[] = [];
-    const campaignType = preferences.campaign_type;
 
     if (campaignType === 'product_focus') {
-      variations.push(
+      const productVariations = [
         `${basePrompt}, hero product shot, centered composition`,
         `${basePrompt}, product with packaging, brand elements visible`,
         `${basePrompt}, macro detail shot, texture and quality focus`,
         `${basePrompt}, product group arrangement, family of products`,
-        `${basePrompt}, floating product, minimalist background`
-      );
+        `${basePrompt}, floating product, minimalist background`,
+        `${basePrompt}, artistic product styling, premium presentation`,
+        `${basePrompt}, product in natural environment, lifestyle context`
+      ];
+      variations.push(...productVariations.slice(0, count));
     } else {
-      variations.push(
+      const lifestyleVariations = [
         `${basePrompt}, person enjoying product benefits, genuine smile`,
         `${basePrompt}, before and after transformation, inspiring story`,
         `${basePrompt}, family using product together, bonding moment`,
         `${basePrompt}, active lifestyle scene, product in daily routine`,
-        `${basePrompt}, cozy home environment, product as part of wellness routine`
-      );
+        `${basePrompt}, cozy home environment, product as part of wellness routine`,
+        `${basePrompt}, morning routine integration, fresh start energy`,
+        `${basePrompt}, wellness journey moment, personal transformation`
+      ];
+      variations.push(...lifestyleVariations.slice(0, count));
     }
 
-    // Add format-specific variations
-    if (format === 'instagram_story') {
-      variations.push(`${basePrompt}, vertical composition, story-style layout, engaging visual hierarchy`);
-    } else if (format === 'pinterest') {
-      variations.push(`${basePrompt}, Pinterest-style graphic, text overlay friendly, pin-worthy composition`);
-    } else if (format === 'facebook_cover') {
-      variations.push(`${basePrompt}, banner composition, brand story visual, cover photo style`);
-    }
-
-    return variations;
+    // Add format-specific enhancements
+    return variations.map(variation => {
+      let enhanced = variation;
+      if (format === 'instagram_story') {
+        enhanced += ', vertical composition, story-style layout, engaging visual hierarchy';
+      } else if (format === 'pinterest') {
+        enhanced += ', Pinterest-style graphic, text overlay friendly, pin-worthy composition';
+      } else if (format === 'facebook_cover') {
+        enhanced += ', banner composition, brand story visual, cover photo style';
+      }
+      return enhanced;
+    });
   }
 
   private generateTextOverlay(
@@ -240,13 +279,21 @@ ${styleModifiers.color}
       const variations = this.generatePromptVariations(basePrompt, product, preferences, format);
       const textOverlay = this.generateTextOverlay(product, preferences);
 
-      // Take only the number of variations we need for this format
-      const selectedVariations = variations.slice(0, imagesPerFormat);
+      // Generate the exact number of variations we need for this format
+      const selectedVariations = this.generatePromptVariations(
+        basePrompt,
+        product,
+        preferences,
+        format,
+        imagesPerFormat
+      );
 
       for (const promptText of selectedVariations) {
         if (prompts.length < totalImages) {
+          // Sanitize each variation before adding
+          const sanitizedText = sanitizePrompt(promptText);
           prompts.push({
-            text: promptText,
+            text: sanitizedText,
             format,
             width: dimensions.width,
             height: dimensions.height,
