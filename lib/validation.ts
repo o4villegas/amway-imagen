@@ -37,7 +37,7 @@ export const campaignPreferencesSchema = z.object({
   brand_style: z.enum(['professional', 'casual', 'wellness', 'luxury']),
   color_scheme: z.enum(['amway_brand', 'product_inspired', 'custom']),
   text_overlay: z.enum(['minimal', 'moderate', 'heavy']),
-  campaign_size: z.union([z.literal(5), z.literal(10), z.literal(15)]),
+  campaign_size: z.union([z.literal(1), z.literal(3), z.literal(5), z.literal(10), z.literal(15)]),
   image_formats: z.array(z.enum(['instagram_post', 'instagram_story', 'facebook_cover', 'pinterest']))
     .min(1, 'At least one image format is required')
     .max(4, 'Maximum 4 image formats allowed')

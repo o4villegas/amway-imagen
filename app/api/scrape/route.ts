@@ -26,9 +26,28 @@ export async function POST(request: NextRequest) {
     const context = getRequestContext();
     const { DB } = context.env;
 
-    // Validate and sanitize input
-    const requestData = await request.json();
-    const { productUrl } = validateRequest(urlSchema, requestData);
+    // Validate and sanitize input with proper error handling
+    let requestData;
+    let productUrl;
+
+    try {
+      requestData = await request.json();
+    } catch (parseError) {
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
+
+    try {
+      const validated = validateRequest(urlSchema, requestData);
+      productUrl = validated.productUrl;
+    } catch (validationError: any) {
+      return NextResponse.json(
+        { error: validationError.message || 'Invalid request format' },
+        { status: 400 }
+      );
+    }
 
     safeLog('Product scraping request received', {
       url: productUrl.substring(0, 50) + '...' // Log only partial URL
@@ -120,6 +139,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Access denied. The product page may require authentication.' },
         { status: 403 }
+      );
+    }
+
+    if (error.message.includes('HTTP 302') || error.message.includes('sso/prepare')) {
+      return NextResponse.json(
+        {
+          error: 'Amway website requires authentication. Product scraping is currently unavailable.',
+          code: 'AUTH_REQUIRED',
+          suggestion: 'Please enter product information manually or try again later.'
+        },
+        { status: 503 }
       );
     }
 

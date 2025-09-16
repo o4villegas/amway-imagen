@@ -13,13 +13,19 @@ npm install          # Install dependencies
 npm run dev          # Run local development server (http://localhost:3000)
 npm run build        # Build Next.js application
 npm run lint         # Run ESLint
-npm run preview      # Build and preview with Wrangler Pages
+npm run preview      # Build and preview with Wrangler Pages (http://localhost:8788)
 npm run deploy       # Deploy to Cloudflare Pages
 npm run cf-typegen   # Generate TypeScript types for Cloudflare environment
 
 # Database commands (after D1 setup)
 wrangler d1 execute DB --file=./schema.sql  # Initialize database
 wrangler d1 migrations create DB init       # Create migration
+
+# Testing commands
+npx playwright test                    # Run all Playwright E2E tests
+npx playwright test --ui              # Run tests in interactive UI mode
+npx playwright test campaign-flow     # Run specific test suite
+npx playwright show-report           # View test results
 ```
 
 ## Architecture
@@ -85,6 +91,13 @@ wrangler d1 migrations create DB init       # Create migration
 - **generated_images**: Individual image records with metadata
 - **campaign_stats**: Analytics for generation success rates and performance
 
+### Testing Architecture
+
+- **E2E Testing**: Playwright with comprehensive test suites covering campaign flow, API endpoints, and UX compliance
+- **Test Environment**: Configured to run against local Wrangler preview server (port 8788)
+- **Test Coverage**: Campaign creation flow, product scraping, AI generation, download functionality, responsive design
+- **Test Organization**: Organized in `/tests` directory with specific test files for different features
+
 ### Cloudflare Integration
 
 - **D1 Database**: `DB` binding for campaign and product data
@@ -103,3 +116,5 @@ wrangler d1 migrations create DB init       # Create migration
 - Prompt generation is context-aware based on product category and benefits
 - ZIP files include usage guidelines and compliance information
 - Database operations include error handling and stats tracking
+- Development uses Next.js dev server (port 3000), testing/preview uses Wrangler (port 8788)
+- Extensive test debugging files exist in root for troubleshooting AI generation and production issues

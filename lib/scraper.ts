@@ -181,10 +181,24 @@ export class AmwayProductScraper {
           'DNT': '1',
           'Connection': 'keep-alive',
           'Upgrade-Insecure-Requests': '1',
-        }
+        },
+        redirect: 'manual' // Handle redirects manually to detect auth requirements
       });
 
       clearTimeout(timeoutId);
+
+      // Check for authentication redirects
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get('location');
+        if (location && location.includes('sso/prepare')) {
+          throw new Error('HTTP 302: Redirected to authentication (sso/prepare)');
+        }
+        // For other redirects, try to follow them
+        if (location) {
+          const redirectUrl = location.startsWith('http') ? location : `https://www.amway.com${location}`;
+          throw new Error(`HTTP ${response.status}: Redirected to ${redirectUrl}`);
+        }
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);

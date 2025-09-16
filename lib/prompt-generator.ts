@@ -22,12 +22,8 @@ export interface TextOverlay {
   style: 'minimal' | 'moderate' | 'heavy';
 }
 
-const FORMAT_DIMENSIONS = {
-  instagram_post: { width: 1080, height: 1080 },
-  instagram_story: { width: 1080, height: 1920 },
-  facebook_cover: { width: 1200, height: 675 },
-  pinterest: { width: 1000, height: 1500 }
-} as const;
+// Use centralized IMAGE_FORMATS from config for consistency
+const FORMAT_DIMENSIONS = IMAGE_FORMATS;
 
 const STYLE_MODIFIERS = {
   professional: {

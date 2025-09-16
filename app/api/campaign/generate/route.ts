@@ -71,7 +71,16 @@ export async function POST(request: NextRequest) {
     const product = await dbManager.getProductById(productId);
     if (!product) {
       return NextResponse.json(
-        { error: 'Product not found' },
+        {
+          error: 'Product not found in database',
+          code: 'PRODUCT_NOT_FOUND',
+          suggestion: 'Try scraping the product first, or use manual product entry if scraping is unavailable',
+          helpEndpoints: {
+            scrape: '/api/scrape',
+            manualEntry: '/api/products/manual',
+            seedDatabase: '/api/products/seed'
+          }
+        },
         { status: 404 }
       );
     }
@@ -110,19 +119,8 @@ export async function POST(request: NextRequest) {
               height: prompt.height
             };
 
-            // PHASE 2 DEBUGGING: Log the exact prompt being sent to AI
-            console.log(`[PHASE2_DEBUG] About to send prompt ${i + batchIndex + 1}:`, {
-              format: prompt.format,
-              promptLength: prompt.text.length,
-              promptPreview: prompt.text.substring(0, 150) + '...',
-              fullPrompt: prompt.text,
-              aiInput: {
-                num_steps: aiInput.num_steps,
-                guidance: aiInput.guidance,
-                width: aiInput.width,
-                height: aiInput.height
-              }
-            });
+            // Log image generation attempt
+            console.log(`Generating image ${i + batchIndex + 1} of ${imagePrompts.length}`);
 
             safeLog(`Generating image ${i + batchIndex + 1}`, {
               format: prompt.format,
@@ -196,26 +194,6 @@ export async function POST(request: NextRequest) {
               ? `Timeout after ${error.timeoutMs}ms`
               : error?.message || error?.name || 'Unknown';
 
-            // PHASE 2 DEBUGGING: Enhanced error logging
-            console.error(`[PHASE2_DEBUG] AI Generation Failed for prompt ${i + batchIndex + 1}:`, {
-              format: prompt.format,
-              promptUsed: prompt.text,
-              promptLength: prompt.text.length,
-              errorType: error?.name,
-              errorMessage: errorMessage,
-              errorCode: error?.code,
-              errorDetails: error?.details,
-              errorStack: error?.stack?.substring(0, 500),
-              isTimeout: error instanceof TimeoutError,
-              isNSFWError: errorMessage.includes('NSFW') || errorMessage.includes('3030'),
-              aiInputUsed: {
-                num_steps: CAMPAIGN_CONFIG.AI_GENERATION_STEPS,
-                guidance: CAMPAIGN_CONFIG.AI_GUIDANCE_SCALE,
-                width: prompt.width,
-                height: prompt.height
-              },
-              timestamp: new Date().toISOString()
-            });
 
             // Critical: Log detailed AI failure information
             console.error('[AI_GENERATION_FAILED]', {
@@ -250,13 +228,6 @@ export async function POST(request: NextRequest) {
       }
 
       if (generatedImages.length === 0) {
-        console.error('[CRITICAL_FAILURE] All image generations failed', {
-          requestedImages: imagePrompts.length,
-          successfulImages: 0,
-          campaignId,
-          productId,
-          timestamp: new Date().toISOString()
-        });
         throw new Error('Failed to generate any images');
       }
 
@@ -344,6 +315,12 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
+    console.error('[CAMPAIGN_GENERATION_ERROR]', {
+      errorName: error?.name,
+      errorMessage: error?.message,
+      timestamp: new Date().toISOString()
+    });
+
     safeLog('Campaign generation error', {
       errorType: error?.name || 'Unknown',
       stage: 'overall'
@@ -365,7 +342,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Campaign generation failed. Please try again later.' },
+      {
+        error: 'Campaign generation failed. Please try again later.'
+      },
       { status: 500 }
     );
   }

@@ -11,7 +11,7 @@ export const CAMPAIGN_CONFIG = {
   AI_GUIDANCE_SCALE: 7.5,
 
   // Campaign sizes
-  CAMPAIGN_SIZES: [5, 10, 15] as const,
+  CAMPAIGN_SIZES: [1, 3, 5, 10, 15] as const,
 
   // Progress simulation
   PROGRESS_UPDATE_INTERVAL: 1500, // milliseconds
@@ -27,11 +27,12 @@ export const CAMPAIGN_CONFIG = {
 } as const;
 
 // Image format specifications
+// Using AI-friendly dimensions (multiples of 64) for better generation
 export const IMAGE_FORMATS = {
-  instagram_post: { width: 1080, height: 1080, label: 'Instagram Post' },
-  instagram_story: { width: 1080, height: 1920, label: 'Instagram Story' },
-  facebook_cover: { width: 1200, height: 675, label: 'Facebook Cover' },
-  pinterest: { width: 1000, height: 1500, label: 'Pinterest Pin' }
+  instagram_post: { width: 1024, height: 1024, label: 'Instagram Post' },
+  instagram_story: { width: 1024, height: 1792, label: 'Instagram Story' },
+  facebook_cover: { width: 1152, height: 640, label: 'Facebook Cover' },
+  pinterest: { width: 1024, height: 1536, label: 'Pinterest Pin' }
 } as const;
 
 // Database pagination and limits
