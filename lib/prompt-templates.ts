@@ -32,7 +32,7 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
     id: 'hero_product',
     name: 'Hero Product Shot',
     category: 'product_focus',
-    template: 'Professional {style} photograph of {productName}, {placement} on {background}, {lighting}, high-resolution commercial photography, {colorScheme}, emphasizing {primaryBenefit}',
+    template: 'Professional {style} photograph of {productName}, {placement} on {background}, {lighting}, crystal clear product label text, all text elements perfectly legible and sharp, high-resolution commercial photography, {colorScheme}, emphasizing {primaryBenefit}',
     variables: ['style', 'productName', 'placement', 'background', 'lighting', 'colorScheme', 'primaryBenefit'],
     suitableFormats: ['instagram_post', 'facebook_cover', 'pinterest'],
     style: ['minimalist', 'premium', 'clinical', 'elegant']
@@ -42,7 +42,7 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
     id: 'product_detail',
     name: 'Product Detail Focus',
     category: 'product_focus',
-    template: 'Macro close-up of {productName}, showcasing {keyFeature}, {textureDescription}, {lighting}, {angle} composition, highlighting {qualityIndicator}',
+    template: 'Macro close-up of {productName}, showcasing {keyFeature}, {textureDescription}, {lighting}, {angle} composition, razor-sharp text on product labels, readable typography preserved, highlighting {qualityIndicator}',
     variables: ['productName', 'keyFeature', 'textureDescription', 'lighting', 'angle', 'qualityIndicator'],
     suitableFormats: ['instagram_post', 'pinterest'],
     style: ['detailed', 'technical', 'artistic', 'scientific']

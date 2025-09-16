@@ -117,4 +117,25 @@ npx playwright show-report           # View test results
 - ZIP files include usage guidelines and compliance information
 - Database operations include error handling and stats tracking
 - Development uses Next.js dev server (port 3000), testing/preview uses Wrangler (port 8788)
-- Extensive test debugging files exist in root for troubleshooting AI generation and production issues
+
+### Text Preservation in AI Image Generation
+
+**Critical for Product Marketing**: AI image models like FLUX-1-schnell struggle with text preservation, especially product labels, brand names, and trademark symbols.
+
+**Enhanced Text Preservation Techniques Implemented**:
+- **Crystal Clear Text Instructions**: Prompts include explicit text clarity requirements
+- **Brand Name Preservation**: Specific instructions to maintain brand typography and readability
+- **Trademark Symbol Protection**: Preserves ™, ®, © symbols in product names
+- **Label Positioning**: Optimizes camera angles for front-facing, readable text
+- **Typography Integrity**: Maintains original font weights and styling
+- **FLUX-1-schnell Optimizations**: Specific anti-blur and distortion instructions
+
+**Usage Guidelines**:
+- Product-focus campaigns receive maximum text preservation treatment
+- Lifestyle campaigns maintain brand text when visible but allow more creative freedom
+- Complex product names with numbers/symbols get enhanced preservation
+- Text preservation varies randomly to create natural-looking campaigns while maintaining readability
+
+**Files Modified for Text Preservation**:
+- `lib/prompt-generator.ts`: Core text preservation logic and techniques
+- `lib/prompt-templates.ts`: Enhanced templates with text clarity instructions

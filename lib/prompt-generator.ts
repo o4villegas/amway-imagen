@@ -81,6 +81,49 @@ const COMPLIANCE_DISCLAIMERS = {
   income: 'Earnings as an Amway IBO are based on individual effort and results may vary.'
 } as const;
 
+// FLUX-1-schnell specific text preservation techniques
+const TEXT_PRESERVATION_TECHNIQUES = {
+  // Core techniques for text clarity
+  clarity: [
+    'crystal clear text',
+    'razor-sharp typography',
+    'perfectly legible labels',
+    'high-contrast text elements',
+    'crisp label printing',
+    'undistorted text'
+  ],
+
+  // Positioning and composition
+  positioning: [
+    'text clearly visible and readable',
+    'label facing camera directly',
+    'optimal text viewing angle',
+    'unobscured product labeling',
+    'front-facing product orientation',
+    'text in sharp focus'
+  ],
+
+  // Technical quality
+  technical: [
+    'commercial photography quality text',
+    'print-ready text clarity',
+    'original typography preserved',
+    'manufacturer label design intact',
+    'authentic product text rendering',
+    'professional label photography'
+  ],
+
+  // Brand-specific
+  brand: [
+    'brand name clearly readable',
+    'logo text unmodified',
+    'trademark symbols preserved',
+    'product name typography intact',
+    'original font styling maintained',
+    'brand identity text preserved'
+  ]
+} as const;
+
 export class PromptGenerator {
   private templateEngine = new PromptTemplateEngine();
 
@@ -123,6 +166,62 @@ export class PromptGenerator {
     return benefits.length > 0 ? benefits : ['overall wellness and quality'];
   }
 
+  private getTextPreservationInstructions(product: StoredProduct, campaignType: string): string {
+    // Extract any potential text elements from product name and brand
+    const brandName = product.brand || 'Amway';
+    const productName = product.name;
+    const hasNumericElements = /\d/.test(productName);
+    const hasSpecialChars = /[™®©]/.test(productName);
+
+    let textInstructions: string[] = [];
+
+    if (campaignType === 'product_focus') {
+      // Core text preservation for product focus
+      textInstructions.push(
+        TEXT_PRESERVATION_TECHNIQUES.clarity[Math.floor(Math.random() * TEXT_PRESERVATION_TECHNIQUES.clarity.length)],
+        TEXT_PRESERVATION_TECHNIQUES.positioning[Math.floor(Math.random() * TEXT_PRESERVATION_TECHNIQUES.positioning.length)],
+        TEXT_PRESERVATION_TECHNIQUES.technical[Math.floor(Math.random() * TEXT_PRESERVATION_TECHNIQUES.technical.length)]
+      );
+
+      // Brand-specific preservation
+      if (brandName && brandName !== 'Amway') {
+        textInstructions.push(`"${brandName}" brand name clearly visible and readable`);
+        textInstructions.push(TEXT_PRESERVATION_TECHNIQUES.brand[Math.floor(Math.random() * TEXT_PRESERVATION_TECHNIQUES.brand.length)]);
+      }
+
+      // Special element preservation
+      if (hasNumericElements) {
+        textInstructions.push('all numbers and measurements clearly readable');
+      }
+
+      if (hasSpecialChars) {
+        textInstructions.push('trademark symbols (™®©) preserved and visible');
+      }
+
+      // FLUX-1-schnell specific optimizations
+      textInstructions.push(
+        'avoid text blur or distortion artifacts',
+        'maintain original label typography and font weights',
+        'product text remains unaltered from source design'
+      );
+
+    } else {
+      // For lifestyle shots - more relaxed but still preserve key text
+      textInstructions.push('readable brand text when product is visible');
+
+      if (brandName && brandName !== 'Amway') {
+        textInstructions.push(`"${brandName}" branding legible when shown`);
+      }
+
+      textInstructions.push(
+        'avoid obscuring important product text',
+        'maintain brand identity when product appears'
+      );
+    }
+
+    return textInstructions.join(', ');
+  }
+
   private generateBasePrompt(
     product: StoredProduct,
     preferences: CampaignPreferences,
@@ -140,8 +239,12 @@ export class PromptGenerator {
     const benefits = this.getProductBenefits(safeProduct);
     const formatAspect = this.getFormatDescription(format);
 
+    // Enhanced text preservation instructions
+    const textPreservationPrompt = this.getTextPreservationInstructions(safeProduct, preferences.campaign_type);
+
     const rawPrompt = `
 ${campaignType.basePrompt} ${sanitizedProductName},
+${textPreservationPrompt},
 ${campaignType.emphasis},
 ${formatAspect} format,
 ${styleModifiers.lighting},
