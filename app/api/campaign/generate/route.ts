@@ -43,10 +43,14 @@ export async function POST(request: NextRequest) {
       console.log('[TEST_ENV] Running in test mode - using mock responses');
     }
 
-    // In test environment, return mock success response
-    if (isTestEnvironment || isTest()) {
+    // Check for real AI test override from frontend
+    const requestData = await request.json();
+    const forceRealAI = process.env.ENABLE_REAL_AI_TESTS === 'true' ||
+                       requestData.forceRealAI === true;
+
+    // In test environment, return mock success response (unless real AI is forced)
+    if ((isTestEnvironment || isTest()) && !forceRealAI) {
       // Still validate the request data
-      const requestData = await request.json();
       const { productId, preferences } = validateRequest(generateCampaignSchema, requestData);
 
       // Return mock success response for testing
@@ -84,8 +88,7 @@ export async function POST(request: NextRequest) {
       hasDB: !!DB
     });
 
-    // Validate and sanitize input
-    const requestData = await request.json();
+    // Validate and sanitize input (already parsed above for real AI check)
     const { productId, preferences } = validateRequest(generateCampaignSchema, requestData);
 
     safeLog('Campaign generation started', {
@@ -420,8 +423,8 @@ export async function POST(request: NextRequest) {
     if (error.message.includes('CHECK constraint failed: campaign_size')) {
       return NextResponse.json(
         {
-          error: 'Invalid campaign size. Please select 1, 3, or 5 images.',
-          validSizes: [1, 3, 5]
+          error: 'Invalid campaign size. Please select 1, 3, 5, 10, or 15 images.',
+          validSizes: [1, 3, 5, 10, 15]
         },
         { status: 400 }
       );

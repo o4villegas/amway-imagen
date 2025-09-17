@@ -2,6 +2,103 @@ import { test, expect, Page } from '@playwright/test';
 
 test.describe('Complete E2E Workflow - AI Generation & UI/UX Journey', () => {
 
+  // ========================================
+  // REAL AI GENERATION TEST (Optional)
+  // ========================================
+  test('should test REAL AI generation end-to-end (when enabled)', async ({ page }) => {
+    // Skip unless explicitly enabled
+    const enableRealAI = process.env.ENABLE_REAL_AI_TESTS === 'true';
+    test.skip(!enableRealAI, 'Real AI tests disabled. Set ENABLE_REAL_AI_TESTS=true to enable.');
+
+    console.log('🤖 Running REAL AI generation test...');
+    console.log('⚠️ This test uses actual Cloudflare AI and may take 30-60 seconds');
+
+    const startTime = Date.now();
+
+    // Override test environment detection to enable real AI
+    await page.addInitScript(() => {
+      window.localStorage.setItem('FORCE_REAL_AI_TEST', 'true');
+    });
+
+    // Navigate and set up campaign
+    await page.goto('/campaign/new');
+    await page.waitForLoadState('networkidle');
+
+    // Quick product selection
+    const availableProduct = page.locator('.product-card:not(.disabled)').first();
+    await expect(availableProduct).toBeVisible();
+    await availableProduct.click();
+
+    // Minimal config for speed - single image
+    await page.locator('input[value="product_focus"]').click();
+    await page.locator('input[value="professional"]').click();
+    await page.locator('input[value="1"]').click(); // Single image for speed
+    await page.locator('input[value="instagram_post"]').check();
+
+    // Start generation
+    const generateButton = page.locator('button:has-text("Generate")');
+    await expect(generateButton).toBeEnabled();
+    await generateButton.click();
+
+    console.log('🔄 Real AI generation in progress...');
+
+    // Wait for actual generation (up to 2 minutes for real AI)
+    const progressIndicator = page.locator('[role="progressbar"], text=/Generating|Processing/i');
+    await expect(progressIndicator).toBeVisible({ timeout: 10000 });
+
+    // Monitor real progress
+    let progressComplete = false;
+    const maxWaitTime = 120000; // 2 minutes
+    const checkInterval = 5000; // Check every 5 seconds
+
+    for (let waited = 0; waited < maxWaitTime && !progressComplete; waited += checkInterval) {
+      await page.waitForTimeout(checkInterval);
+
+      // Check if generation completed
+      const images = page.locator('img[alt*="Generated"], .generated-image');
+      const imageCount = await images.count();
+
+      if (imageCount > 0) {
+        progressComplete = true;
+        console.log(`✅ Real AI generation completed! Found ${imageCount} images`);
+        break;
+      }
+
+      console.log(`⏳ Still generating... (${waited/1000}s elapsed)`);
+    }
+
+    expect(progressComplete).toBe(true);
+
+    // Validate real AI output quality
+    const generatedImages = page.locator('img[alt*="Generated"]');
+    expect(await generatedImages.count()).toBeGreaterThan(0);
+
+    // Check first image loads properly
+    const firstImage = generatedImages.first();
+    await expect(firstImage).toBeVisible();
+
+    const imageSrc = await firstImage.getAttribute('src');
+    expect(imageSrc).toBeTruthy();
+    expect(imageSrc).not.toContain('mock');
+
+    // Verify download functionality with real data
+    const downloadButton = page.locator('button:has-text("Download")');
+    if (await downloadButton.isVisible()) {
+      const downloadPromise = page.waitForEvent('download', { timeout: 30000 });
+      await downloadButton.click();
+
+      const download = await downloadPromise;
+      expect(download.suggestedFilename()).toMatch(/\.zip$/i);
+      console.log(`📦 Real campaign downloaded: ${download.suggestedFilename()}`);
+    }
+
+    const totalTime = (Date.now() - startTime) / 1000;
+    console.log(`🎉 REAL AI test completed in ${totalTime.toFixed(1)}s`);
+
+    // Performance check - real AI should complete within reasonable time
+    expect(totalTime).toBeLessThan(180); // 3 minutes max
+  });
+
   test('should complete entire customer journey from product selection to download', async ({ page }) => {
     console.log('🚀 Starting comprehensive E2E workflow test...');
 
