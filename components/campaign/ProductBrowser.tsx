@@ -11,6 +11,16 @@ import Image from 'next/image';
 function getProxiedImageUrl(originalUrl: string): string {
   if (!originalUrl) return '/api/placeholder-image';
 
+  // If it's exactly our placeholder image, return it directly (don't proxy)
+  if (originalUrl === '/api/placeholder-image') {
+    return originalUrl;
+  }
+
+  // If it's already our placeholder image, return it directly
+  if (originalUrl.startsWith('/api/placeholder-image')) {
+    return originalUrl;
+  }
+
   // If it's already a data URL (base64), return it directly
   if (originalUrl.startsWith('data:')) {
     return originalUrl;
@@ -81,7 +91,10 @@ export function ProductBrowser({ onProductSelected, onManualEntry }: ProductBrow
   };
 
   const handleProductClick = (product: StoredProduct) => {
-    onProductSelected(product);
+    // Only allow selection of available products
+    if (product.available !== false) {
+      onProductSelected(product);
+    }
   };
 
   return (
@@ -153,12 +166,25 @@ export function ProductBrowser({ onProductSelected, onManualEntry }: ProductBrow
       {/* Products Grid */}
       {!loading && !error && products.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          {products.map((product) => (
-            <div
-              key={product.id}
-              onClick={() => handleProductClick(product)}
-              className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group"
-            >
+          {products.map((product) => {
+            const isAvailable = product.available !== false;
+            const cardClasses = isAvailable
+              ? "border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group"
+              : "border border-gray-200 rounded-lg p-4 opacity-50 grayscale cursor-not-allowed group relative";
+
+            return (
+              <div
+                key={product.id}
+                onClick={() => handleProductClick(product)}
+                className={cardClasses}
+              >
+                {/* Coming Soon Badge for disabled products */}
+                {!isAvailable && (
+                  <div className="absolute top-2 right-2 bg-gray-600 text-white text-xs px-2 py-1 rounded z-10">
+                    Coming Soon
+                  </div>
+                )}
+
               {/* Product Image */}
               <div className="aspect-square mb-3 relative bg-gray-100 rounded-md overflow-hidden">
                 {product.main_image_url ? (
@@ -186,7 +212,11 @@ export function ProductBrowser({ onProductSelected, onManualEntry }: ProductBrow
 
               {/* Product Info */}
               <div className="space-y-2">
-                <h3 className="font-medium text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                <h3 className={`font-medium line-clamp-2 transition-colors ${
+                  isAvailable
+                    ? "text-gray-900 group-hover:text-blue-600"
+                    : "text-gray-700"
+                }`}>
                   {product.name}
                 </h3>
 
@@ -212,7 +242,8 @@ export function ProductBrowser({ onProductSelected, onManualEntry }: ProductBrow
                 </p>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

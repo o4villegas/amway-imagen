@@ -11,6 +11,7 @@ import { DownloadManager } from '@/components/campaign/DownloadManager';
 import { ImageGallery } from '@/components/campaign/ImageGallery';
 import { ProgressIndicator } from '@/components/campaign/ProgressIndicator';
 import { StoredProduct } from '@/lib/db';
+import { ErrorBoundary, CampaignErrorFallback } from '@/components/ErrorBoundary';
 
 export type CampaignStep = 'select' | 'configure' | 'generate' | 'preview' | 'download';
 
@@ -118,10 +119,12 @@ export default function NewCampaign() {
         {/* Step Content */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           {step === 'select' && !showManualEntry && (
-            <ProductBrowser
-              onProductSelected={handleProductSelected}
-              onManualEntry={handleManualEntry}
-            />
+            <ErrorBoundary fallback={CampaignErrorFallback}>
+              <ProductBrowser
+                onProductSelected={handleProductSelected}
+                onManualEntry={handleManualEntry}
+              />
+            </ErrorBoundary>
           )}
 
           {step === 'select' && showManualEntry && (
@@ -137,21 +140,25 @@ export default function NewCampaign() {
             <div className="p-6">
               <ProductPreview product={productInfo} />
               <div className="mt-8">
-                <PreferencesPanel
-                  preferences={preferences}
-                  onChange={setPreferences}
-                  onComplete={handlePreferencesComplete}
-                />
+                <ErrorBoundary fallback={CampaignErrorFallback}>
+                  <PreferencesPanel
+                    preferences={preferences}
+                    onChange={setPreferences}
+                    onComplete={handlePreferencesComplete}
+                  />
+                </ErrorBoundary>
               </div>
             </div>
           )}
 
           {step === 'generate' && productInfo && (
-            <GenerationProgress
-              product={productInfo}
-              preferences={preferences}
-              onComplete={handleGenerationComplete}
-            />
+            <ErrorBoundary fallback={CampaignErrorFallback}>
+              <GenerationProgress
+                product={productInfo}
+                preferences={preferences}
+                onComplete={handleGenerationComplete}
+              />
+            </ErrorBoundary>
           )}
 
           {step === 'preview' && generationResult && (
@@ -162,10 +169,12 @@ export default function NewCampaign() {
                   Review your generated images and select which ones to include in your campaign download.
                 </p>
               </div>
-              <ImageGallery
-                campaignId={generationResult.campaignId}
-                onComplete={handlePreviewComplete}
-              />
+              <ErrorBoundary fallback={CampaignErrorFallback}>
+                <ImageGallery
+                  campaignId={generationResult.campaignId}
+                  onComplete={handlePreviewComplete}
+                />
+              </ErrorBoundary>
             </div>
           )}
 

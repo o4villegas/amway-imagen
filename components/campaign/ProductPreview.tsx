@@ -82,9 +82,9 @@ export function ProductPreview({ product }: ProductPreviewProps) {
                 <Badge className={getCategoryColor(product.category)}>
                   {product.category}
                 </Badge>
-                <div className={`flex items-center text-sm ${getInventoryColor(product.inventory_status)}`}>
+                <div className={`flex items-center text-sm ${getInventoryColor(product.inventory_status || 'Unknown')}`}>
                   <CheckCircle className="h-4 w-4 mr-1" />
-                  {product.inventory_status}
+                  {product.inventory_status || 'Unknown'}
                 </div>
               </div>
             </div>
@@ -104,7 +104,7 @@ export function ProductPreview({ product }: ProductPreviewProps) {
                 {product.price && (
                   <div className="flex items-center text-lg font-medium text-gray-900">
                     <DollarSign className="h-4 w-4 mr-1" />
-                    {formatPrice(product.price, product.currency)}
+                    {formatPrice(product.price, product.currency || 'USD')}
                   </div>
                 )}
               </div>

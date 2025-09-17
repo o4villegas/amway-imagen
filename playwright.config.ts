@@ -1,6 +1,21 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
+ * Environment detection for browser configuration
+ */
+const isWSL = !!process.env.WSL_DISTRO_NAME;
+const isCI = !!process.env.CI;
+const hasDisplay = !!process.env.DISPLAY;
+
+// Use headless mode in WSL, CI, or when no display is available
+const useHeadless = isWSL || isCI || !hasDisplay;
+
+// Dynamic server detection - prefer preview server for testing
+const testPort = process.env.TEST_PORT ? parseInt(process.env.TEST_PORT) : 8788;
+const testCommand = testPort === 8788 ? 'npm run preview' : 'npm run dev';
+const baseURL = process.env.TEST_BASE_URL || `http://localhost:${testPort}`;
+
+/**
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
@@ -18,10 +33,17 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:8788',
+    baseURL,
+
+    /* Use headless mode when appropriate */
+    headless: useHeadless,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+
+    /* Increase timeouts for slower environments */
+    actionTimeout: 30000,
+    navigationTimeout: 30000,
   },
 
   /* Configure projects for major browsers */
@@ -54,9 +76,13 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run preview',
-    url: 'http://localhost:8788',
-    reuseExistingServer: !process.env.CI,
+    command: testCommand,
+    url: baseURL,
+    reuseExistingServer: false, // Force clean server to prevent conflicts
     timeout: 120 * 1000, // 2 minutes for Cloudflare to start
+    env: {
+      // Ensure consistent environment for server startup
+      NODE_ENV: process.env.NODE_ENV || 'test',
+    },
   },
 });

@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Download, Eye, Maximize2, Save } from 'lucide-react';
+import { devLog } from '@/lib/env-utils';
 
 interface GeneratedImage {
   id: number;
@@ -44,7 +45,7 @@ export function ImageGallery({ campaignId, onSelectionChange, onComplete }: Imag
       const initialSelected = new Set(data.images.filter(img => img.selected).map(img => img.id));
       setSelectedImages(initialSelected);
     } catch (error) {
-      console.error('Error fetching images:', error);
+      devLog.error('Error fetching images:', error);
     } finally {
       setLoading(false);
     }
@@ -75,19 +76,61 @@ export function ImageGallery({ campaignId, onSelectionChange, onComplete }: Imag
         body: JSON.stringify({ selected: checked })
       });
     } catch (error) {
-      console.error('Error updating selection:', error);
+      devLog.error('Error updating selection:', error);
     }
   };
 
-  const handleSelectAll = () => {
+  const handleSelectAll = async () => {
     const allIds = new Set(images.map(img => img.id));
     setSelectedImages(allIds);
-    images.forEach(img => handleToggleSelection(img.id, true));
+
+    // Update backend for each image with proper error handling
+    const updatePromises = images.map(async (img) => {
+      try {
+        const response = await fetch(`/api/campaign/${campaignId}/images/${img.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ selected: true })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to update image ${img.id}: ${response.status}`);
+        }
+      } catch (error) {
+        // Log error but don't fail the entire operation
+        devLog.error(`Error updating selection for image ${img.id}:`, error);
+        // Optionally: Show user notification about partial failure
+      }
+    });
+
+    // Wait for all updates to complete
+    await Promise.allSettled(updatePromises);
   };
 
-  const handleDeselectAll = () => {
+  const handleDeselectAll = async () => {
     setSelectedImages(new Set());
-    images.forEach(img => handleToggleSelection(img.id, false));
+
+    // Update backend for each image with proper error handling
+    const updatePromises = images.map(async (img) => {
+      try {
+        const response = await fetch(`/api/campaign/${campaignId}/images/${img.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ selected: false })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to update image ${img.id}: ${response.status}`);
+        }
+      } catch (error) {
+        // Log error but don't fail the entire operation
+        devLog.error(`Error updating selection for image ${img.id}:`, error);
+        // Optionally: Show user notification about partial failure
+      }
+    });
+
+    // Wait for all updates to complete
+    await Promise.allSettled(updatePromises);
   };
 
   const downloadImage = async (image: GeneratedImage) => {
@@ -104,7 +147,7 @@ export function ImageGallery({ campaignId, onSelectionChange, onComplete }: Imag
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error downloading image:', error);
+      devLog.error('Error downloading image:', error);
     }
   };
 

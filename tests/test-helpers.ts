@@ -4,11 +4,6 @@
 
 import { expect } from '@playwright/test';
 
-export const TEST_URLS = {
-  VALID_AMWAY: 'https://www.amway.com/en_US/p-123456',
-  INVALID_DOMAIN: 'https://invalid-domain.com/product',
-  INVALID_FORMAT: 'https://www.amway.com/invalid-format'
-};
 
 export const MOCK_PRODUCT = {
   id: 1,
@@ -18,7 +13,7 @@ export const MOCK_PRODUCT = {
   price: 29.99,
   currency: 'USD',
   category: 'Health',
-  main_image_url: 'https://www.amway.com/medias/test.jpg',
+  main_image_url: 'https://www.amway.com/medias/124481-artistry-signature-color-light-up-lip-gloss-1.jpg',
   benefits: 'Test benefits',
   inventory_status: 'In Stock'
 };
@@ -129,16 +124,6 @@ export async function mockFailedScraping(page: any, errorMessage: string = 'Scra
   });
 }
 
-/**
- * Complete the URL input step
- */
-export async function completeUrlStep(page: any, url: string = TEST_URLS.VALID_AMWAY) {
-  const urlInput = page.locator('input[type="url"]').or(page.locator('input[placeholder*="URL"]')).first();
-  const submitBtn = page.locator('button[type="submit"]').or(page.locator('button:has-text("Extract")')).first();
-
-  await urlInput.fill(url);
-  await submitBtn.click();
-}
 
 /**
  * Wait for a specific step to be active

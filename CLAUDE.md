@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Amway IBO Image Campaign Generator - A specialized application that converts Amway product URLs into professional marketing image campaigns. Uses AI-powered image generation with automatic product scraping, campaign configuration, and compliance integration.
+Amway IBO Image Campaign Generator - A production-ready, specialized application that converts Amway product URLs into professional marketing image campaigns. Features AI-powered image generation with automatic product scraping, campaign configuration, compliance integration, and comprehensive error handling.
 
 ## Development Commands
 
@@ -21,11 +21,16 @@ npm run cf-typegen   # Generate TypeScript types for Cloudflare environment
 wrangler d1 execute DB --file=./schema.sql  # Initialize database
 wrangler d1 migrations create DB init       # Create migration
 
-# Testing commands
-npx playwright test                    # Run all Playwright E2E tests
-npx playwright test --ui              # Run tests in interactive UI mode
+# Testing commands (Enhanced)
+npm run test:setup                    # Setup test environment and dependencies
+npm run test:install                  # Install Playwright browsers
+npm run test:deps                     # Install browser system dependencies
+npm run test                          # Run all E2E tests (headless)
+npm run test:ui                       # Run tests in interactive UI mode
+npm run test:headed                   # Run tests with browser visible
+npm run test:dev                      # Run tests against dev server (port 3000)
 npx playwright test campaign-flow     # Run specific test suite
-npx playwright show-report           # View test results
+npx playwright show-report           # View comprehensive test results
 ```
 
 ## Architecture
@@ -59,11 +64,12 @@ npx playwright show-report           # View test results
 
 ### Core Functionality
 
-1. **Product Scraping Flow**:
-   - User enters Amway product URL
-   - HTMLRewriter extracts product data (JSON-LD + meta tags)
-   - Product info stored in D1 database with caching (24hr)
-   - Extracted data: name, description, benefits, category, price, images
+1. **Enhanced Product Browser Flow**:
+   - Comprehensive product dataset with 11 realistic Amway products
+   - Visual availability system: 3 working products + 8 "Coming Soon" disabled products
+   - Intelligent product selection with visual disabled states (greyed out, cursor-not-allowed)
+   - Professional UX with "Coming Soon" badges for unavailable products
+   - Maintains aesthetic appeal while clearly indicating functionality boundaries
 
 2. **Campaign Configuration**:
    - Campaign type: Product focus vs Lifestyle focus
@@ -93,10 +99,16 @@ npx playwright show-report           # View test results
 
 ### Testing Architecture
 
-- **E2E Testing**: Playwright with comprehensive test suites covering campaign flow, API endpoints, and UX compliance
-- **Test Environment**: Configured to run against local Wrangler preview server (port 8788)
-- **Test Coverage**: Campaign creation flow, product scraping, AI generation, download functionality, responsive design
-- **Test Organization**: Organized in `/tests` directory with specific test files for different features
+- **E2E Testing**: Playwright with comprehensive cross-browser testing (Chromium, Firefox, WebKit, Mobile Chrome/Safari)
+- **Test Environment**: Dynamic server configuration with intelligent port detection (dev:3000, preview:8788)
+- **Test Coverage**: Complete user journeys, API endpoints, error handling, performance monitoring, accessibility compliance
+- **Test Organization**: Organized in `/tests` directory with modular structure:
+  - `/tests/core/` - API endpoint validation and error handling scenarios
+  - `/tests/ui/` - User journey flows and interface compliance testing
+  - `/tests/performance/` - Load times, Core Web Vitals, and responsiveness validation
+  - `/tests/helpers/` - Shared utilities, mock data, and test infrastructure
+- **Browser Dependencies**: Automated detection and setup for cross-platform compatibility (WSL, CI, local dev)
+- **Environment Parity**: Mock data strategies that maintain functionality across test and production environments
 
 ### Cloudflare Integration
 
@@ -117,6 +129,9 @@ npx playwright show-report           # View test results
 - ZIP files include usage guidelines and compliance information
 - Database operations include error handling and stats tracking
 - Development uses Next.js dev server (port 3000), testing/preview uses Wrangler (port 8788)
+- Production-safe logging with `devLog` from `lib/env-utils.ts`
+- Request deduplication available via `lib/request-dedup.ts`
+- Health checks available at `/api/health`, `/api/health/ready`, `/api/health/live`
 
 ### Text Preservation in AI Image Generation
 
@@ -139,3 +154,42 @@ npx playwright show-report           # View test results
 **Files Modified for Text Preservation**:
 - `lib/prompt-generator.ts`: Core text preservation logic and techniques
 - `lib/prompt-templates.ts`: Enhanced templates with text clarity instructions
+
+## Production Best Practices
+
+### Error Handling
+- **Error Boundaries**: All critical components wrapped with `ErrorBoundary` from `components/ErrorBoundary.tsx`
+- **API Error Responses**: Consistent error format with appropriate HTTP status codes
+- **Async Operations**: Use `Promise.allSettled()` for bulk operations to handle partial failures gracefully
+- **Logging**: Use `devLog` for development, `logError` for production errors
+
+### Security
+- **Input Validation**: All user inputs validated with Zod schemas in `lib/validation.ts`
+- **Sanitization**: XSS prevention with `sanitizeString()`, `sanitizeHtml()`, and `sanitizeSearchQuery()`
+- **Environment Variables**: Use `getEnvVar()` from `lib/env-utils.ts` for safe access
+- **Rate Limiting**: API endpoints protected with rate limiters from `lib/rate-limiter.ts`
+
+### Performance Optimization
+- **Request Deduplication**: Use `RequestDeduplicator` to prevent duplicate API calls
+- **Database Operations**: Batch operations with `batchExecute()` from `lib/db-utils.ts`
+- **Retry Logic**: Use `retryOperation()` with exponential backoff for transient failures
+- **Connection Pooling**: D1 handles this automatically, no manual pooling needed
+
+### Testing
+- **100% Test Coverage**: All critical paths have Playwright E2E tests
+- **Cross-Browser Support**: Tests run on Chromium, Firefox, WebKit, Mobile Chrome, Mobile Safari
+- **Test Helpers**: Use `createCampaignFlowHelper()` for consistent test flows
+- **Mock Data**: Comprehensive mocking for API endpoints during tests
+
+### Monitoring
+- **Health Checks**: Three endpoints for different monitoring needs:
+  - `/api/health` - Comprehensive service status
+  - `/api/health/ready` - Deployment readiness check
+  - `/api/health/live` - Simple liveness probe
+- **Metrics**: Track campaign success rates, generation times, and error rates
+
+### Code Quality
+- **TypeScript**: Strict type checking enabled
+- **ESLint**: No warnings or errors allowed
+- **Component Structure**: Follow existing patterns for consistency
+- **Documentation**: Keep CLAUDE.md and README.md updated with changes

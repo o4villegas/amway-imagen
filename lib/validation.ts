@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isDevelopment } from './env-utils';
 
 // URL validation schema
 export const urlSchema = z.object({
@@ -69,13 +70,41 @@ export const idSchema = z.object({
 export const sanitizeString = (input: string): string => {
   return input
     .replace(/[<>\"']/g, '') // Remove potential HTML/JS injection chars
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+\s*=/gi, '') // Remove event handlers like onclick=
+    .replace(/\x00/g, '') // Remove null bytes
     .trim()
     .substring(0, 1000); // Limit length
 };
 
+// Sanitize HTML content (for rich text fields)
+export const sanitizeHtml = (input: string): string => {
+  // Remove script tags and their content
+  let clean = input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+
+  // Remove on* event handlers
+  clean = clean.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
+
+  // Remove dangerous protocols
+  clean = clean.replace(/javascript:|data:text\/html/gi, '');
+
+  return clean.trim();
+};
+
+// Sanitize SQL-like input (prevent SQL injection in search queries)
+export const sanitizeSearchQuery = (input: string): string => {
+  return input
+    .replace(/['";\\]/g, '') // Remove SQL special characters
+    .replace(/--/g, '') // Remove SQL comments
+    .replace(/\/\*/g, '') // Remove SQL multi-line comments
+    .replace(/\*\//g, '')
+    .trim()
+    .substring(0, 200); // Limit search query length
+};
+
 // Safe logging function
 export const safeLog = (message: string, data?: any, sensitiveFields: string[] = []) => {
-  if (process.env.NODE_ENV === 'development') {
+  if (isDevelopment()) {
     if (data && typeof data === 'object') {
       const sanitizedData = { ...data };
 

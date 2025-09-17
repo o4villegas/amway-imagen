@@ -1,9 +1,21 @@
 // Database utilities for D1
 
-import { ScrapedProduct } from './scraper';
+export interface ScrapedProduct {
+  amway_product_id?: string;
+  name: string;
+  description: string;
+  benefits: string;
+  category: string;
+  brand?: string;
+  price?: number | null;
+  currency?: string;
+  main_image_url?: string | null;
+  inventory_status?: string;
+}
 
 export interface StoredProduct extends ScrapedProduct {
   id: number;
+  available: boolean;
   product_url: string;
   scraped_at: string;
   updated_at: string;
@@ -354,6 +366,19 @@ export class DatabaseManager {
     } catch (error) {
       console.error('Error updating campaign stats:', error);
       // Don't throw - stats are non-critical
+    }
+  }
+
+  async getAllProducts(): Promise<StoredProduct[]> {
+    try {
+      const results = await this.db.prepare(
+        'SELECT * FROM products ORDER BY updated_at DESC'
+      ).all();
+
+      return results.results as unknown as StoredProduct[];
+    } catch (error) {
+      console.error('Error getting all products:', error);
+      return [];
     }
   }
 }

@@ -1,6 +1,5 @@
 // Product data loader utility for processing external product data
-import { ScrapedProduct } from './scraper';
-import { StoredProduct, DatabaseManager } from './db';
+import { ScrapedProduct, StoredProduct, DatabaseManager } from './db';
 
 export interface RawProductData {
   filename: string;
