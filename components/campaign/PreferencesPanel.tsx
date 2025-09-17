@@ -235,33 +235,22 @@ export function PreferencesPanel({ preferences, onChange, onComplete }: Preferen
         </CardContent>
       </Card>
 
-      {/* Campaign Size */}
+      {/* Campaign Info - Fixed at 5 Images */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Campaign Size</CardTitle>
+          <CardTitle className="text-base">Campaign Package</CardTitle>
         </CardHeader>
         <CardContent>
-          <Select
-            value={preferences.campaign_size.toString()}
-            onValueChange={(value) => updatePreference('campaign_size', parseInt(value) as any)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1">1 Image - Test Shot</SelectItem>
-              <SelectItem value="3">3 Images - Mini Campaign</SelectItem>
-              <SelectItem value="5">5 Images - Full Campaign</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+            <div>
+              <div className="font-medium text-blue-900">Professional Campaign</div>
+              <div className="text-sm text-blue-700">5 high-quality images</div>
+            </div>
+            <div className="text-2xl font-bold text-blue-600">5</div>
+          </div>
           <p className="text-sm text-gray-500 mt-2">
-            Total images will be distributed across selected formats
+            Images will be distributed across your selected formats for optimal marketing coverage
           </p>
-          {preferences.image_formats.length > preferences.campaign_size && (
-            <p className="text-sm text-amber-600 mt-1">
-              ⚠️ You&apos;ve selected more formats than images. Some formats may not receive images.
-            </p>
-          )}
         </CardContent>
       </Card>
 

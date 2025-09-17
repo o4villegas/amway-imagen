@@ -20,7 +20,7 @@ export interface CampaignPreferences {
   brand_style: 'professional' | 'casual' | 'wellness' | 'luxury';
   color_scheme: 'amway_brand' | 'product_inspired' | 'custom';
   text_overlay: 'minimal' | 'moderate' | 'heavy';
-  campaign_size: 1 | 3 | 5 | 10 | 15;
+  campaign_size: 5;
   image_formats: Array<'instagram_post' | 'instagram_story' | 'facebook_cover' | 'pinterest'>;
 }
 
@@ -36,7 +36,7 @@ const defaultPreferences: CampaignPreferences = {
   brand_style: 'professional',
   color_scheme: 'amway_brand',
   text_overlay: 'moderate',
-  campaign_size: 3,
+  campaign_size: 5,
   image_formats: ['instagram_post', 'instagram_story']
 };
 

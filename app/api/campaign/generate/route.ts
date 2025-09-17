@@ -423,8 +423,8 @@ export async function POST(request: NextRequest) {
     if (error.message.includes('CHECK constraint failed: campaign_size')) {
       return NextResponse.json(
         {
-          error: 'Invalid campaign size. Please select 1, 3, 5, 10, or 15 images.',
-          validSizes: [1, 3, 5, 10, 15]
+          error: 'Campaign size is standardized to 5 images for optimal quality and coverage.',
+          validSizes: [5]
         },
         { status: 400 }
       );

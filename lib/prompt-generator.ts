@@ -60,16 +60,16 @@ const COLOR_SCHEMES = {
 
 const CAMPAIGN_TYPES = {
   product_focus: {
-    basePrompt: 'High-quality product photography showcasing',
-    emphasis: 'product features, clean presentation, commercial quality',
-    background: 'clean white background or subtle branded background',
-    angle: 'multiple angles showing product details and benefits'
+    basePrompt: 'Professional lifestyle photography representing',
+    emphasis: 'benefit visualization, conceptual representation, brand messaging',
+    background: 'clean modern environment or natural brand-appropriate setting',
+    angle: 'aspirational lifestyle concepts showcasing benefit outcomes'
   },
   lifestyle: {
-    basePrompt: 'Lifestyle photography featuring real people using',
-    emphasis: 'authentic moments, real-life scenarios, emotional connection',
+    basePrompt: 'Authentic lifestyle scene showcasing',
+    emphasis: 'real-life benefit application, emotional connection, lifestyle enhancement',
     background: 'natural environments, home settings, daily life contexts',
-    angle: 'people interacting with product, before/after scenarios'
+    angle: 'people experiencing benefit outcomes, aspirational moments'
   }
 } as const;
 
@@ -80,6 +80,39 @@ const COMPLIANCE_DISCLAIMERS = {
   other: 'Individual results may vary.',
   income: 'Earnings as an Amway IBO are based on individual effort and results may vary.'
 } as const;
+
+// Benefit-focused concepts to avoid product recreation
+const BENEFIT_CONCEPTS = {
+  energy: ['vitality visualization', 'active lifestyle imagery', 'morning energy concepts', 'dynamic wellness scenes'],
+  wellness: ['holistic health imagery', 'balanced lifestyle scenes', 'wellness journey visuals', 'harmony concepts'],
+  beauty: ['natural radiance concepts', 'confidence imagery', 'self-care moments', 'inner glow visualization'],
+  nutrition: ['wholesome nutrition concepts', 'healthy choices imagery', 'nutritional wellness', 'balanced living'],
+  immunity: ['strength and protection concepts', 'resilience imagery', 'wellness foundation visuals', 'vitality support'],
+  cleanliness: ['purity and freshness concepts', 'clean living imagery', 'organized wellness spaces', 'fresh environment'],
+  skincare: ['healthy skin concepts', 'natural beauty imagery', 'radiant complexion visuals', 'skincare routine aesthetics'],
+  fitness: ['active lifestyle concepts', 'strength and endurance imagery', 'fitness journey visuals', 'healthy movement'],
+  haircare: ['healthy hair concepts', 'confidence and beauty imagery', 'hair wellness visuals', 'natural shine aesthetics']
+} as const;
+
+// Visual metaphors for benefit representation
+const VISUAL_METAPHORS = {
+  energy: ['sunrise energy dynamics', 'flowing water movements', 'vibrant natural elements', 'light and motion'],
+  strength: ['mountain stability imagery', 'strong foundation concepts', 'growth and resilience', 'solid support'],
+  purity: ['crystal clear environments', 'fresh natural settings', 'clean modern spaces', 'pristine conditions'],
+  balance: ['harmonious compositions', 'equilibrium visuals', 'centered wellness', 'peaceful stability'],
+  growth: ['flourishing nature', 'positive transformation', 'progressive development', 'upward momentum'],
+  confidence: ['empowered posture', 'self-assured presence', 'inner strength display', 'personal radiance']
+} as const;
+
+// Compliance safeguards to prevent product misrepresentation
+const COMPLIANCE_SAFEGUARDS = [
+  'avoid recreating exact product appearance',
+  'focus on benefit concepts rather than product replication',
+  'represent brand values without product simulation',
+  'maintain Amway brand aesthetic guidelines',
+  'ensure professional commercial quality',
+  'focus on lifestyle enhancement rather than product features'
+] as const;
 
 // FLUX-1-schnell specific text preservation techniques
 const TEXT_PRESERVATION_TECHNIQUES = {
@@ -136,34 +169,76 @@ export class PromptGenerator {
       .trim();
   }
 
-  private getProductBenefits(product: StoredProduct): string[] {
-    const benefits: string[] = [];
+  private extractBenefitConcepts(product: StoredProduct): string[] {
+    const benefitConcepts: string[] = [];
+    const benefitText = (product.benefits || '').toLowerCase();
+    const productName = product.name.toLowerCase();
+    const category = (product.category || 'other').toLowerCase();
 
-    if (product.benefits) {
-      // Extract key benefit phrases
-      const benefitText = product.benefits.toLowerCase();
+    // Enhanced benefit detection with concept mapping
+    const benefitMappings = [
+      { keywords: ['energy', 'vitality', 'stamina', 'vigor'], concepts: BENEFIT_CONCEPTS.energy },
+      { keywords: ['wellness', 'health', 'wellbeing'], concepts: BENEFIT_CONCEPTS.wellness },
+      { keywords: ['beauty', 'skin', 'radiance', 'glow'], concepts: BENEFIT_CONCEPTS.beauty },
+      { keywords: ['nutrition', 'nutrient', 'vitamin', 'mineral'], concepts: BENEFIT_CONCEPTS.nutrition },
+      { keywords: ['immune', 'immunity', 'defense', 'protection'], concepts: BENEFIT_CONCEPTS.immunity },
+      { keywords: ['clean', 'fresh', 'pure', 'hygiene'], concepts: BENEFIT_CONCEPTS.cleanliness },
+      { keywords: ['skincare', 'complexion', 'moistur'], concepts: BENEFIT_CONCEPTS.skincare },
+      { keywords: ['fitness', 'strength', 'muscle', 'workout'], concepts: BENEFIT_CONCEPTS.fitness },
+      { keywords: ['hair', 'shine', 'scalp', 'volume'], concepts: BENEFIT_CONCEPTS.haircare }
+    ];
 
-      if (benefitText.includes('energy') || benefitText.includes('vitality')) {
-        benefits.push('energy and vitality');
+    // Extract concepts based on benefits and product context
+    benefitMappings.forEach(mapping => {
+      const hasKeyword = mapping.keywords.some(keyword =>
+        benefitText.includes(keyword) || productName.includes(keyword)
+      );
+
+      if (hasKeyword) {
+        // Select a random concept from the mapping
+        const randomConcept = mapping.concepts[Math.floor(Math.random() * mapping.concepts.length)];
+        benefitConcepts.push(randomConcept);
       }
-      if (benefitText.includes('immune') || benefitText.includes('immunity')) {
-        benefits.push('immune system support');
-      }
-      if (benefitText.includes('skin') || benefitText.includes('beauty')) {
-        benefits.push('healthy skin and beauty');
-      }
-      if (benefitText.includes('digestive') || benefitText.includes('gut')) {
-        benefits.push('digestive wellness');
-      }
-      if (benefitText.includes('weight') || benefitText.includes('fitness')) {
-        benefits.push('weight management and fitness');
-      }
-      if (benefitText.includes('clean') || benefitText.includes('fresh')) {
-        benefits.push('cleanliness and freshness');
-      }
+    });
+
+    // Category-based fallback concepts
+    if (benefitConcepts.length === 0) {
+      const categoryFallbacks = {
+        'nutrition': BENEFIT_CONCEPTS.nutrition,
+        'beauty': BENEFIT_CONCEPTS.beauty,
+        'personal_care': BENEFIT_CONCEPTS.wellness,
+        'home': BENEFIT_CONCEPTS.cleanliness,
+        'health': BENEFIT_CONCEPTS.wellness
+      };
+
+      const fallbackConcepts = categoryFallbacks[category as keyof typeof categoryFallbacks] || BENEFIT_CONCEPTS.wellness;
+      benefitConcepts.push(fallbackConcepts[0]);
     }
 
-    return benefits.length > 0 ? benefits : ['overall wellness and quality'];
+    return benefitConcepts.slice(0, 2); // Limit to 2 primary concepts
+  }
+
+  private getVisualMetaphors(benefitConcepts: string[]): string[] {
+    const metaphors: string[] = [];
+
+    // Map benefit concepts to visual metaphors
+    Object.entries(VISUAL_METAPHORS).forEach(([key, metaphorList]) => {
+      const hasRelatedConcept = benefitConcepts.some(concept =>
+        concept.includes(key) ||
+        concept.includes('energy') && key === 'energy' ||
+        concept.includes('strength') && key === 'strength' ||
+        concept.includes('purity') && key === 'purity' ||
+        concept.includes('balance') && key === 'balance' ||
+        concept.includes('confidence') && key === 'confidence'
+      );
+
+      if (hasRelatedConcept) {
+        const randomMetaphor = metaphorList[Math.floor(Math.random() * metaphorList.length)];
+        metaphors.push(randomMetaphor);
+      }
+    });
+
+    return metaphors.slice(0, 1); // One primary metaphor per image
   }
 
   private getTextPreservationInstructions(product: StoredProduct, campaignType: string): string {
@@ -291,28 +366,36 @@ marketing quality
     // Sanitize product data first
     const safeProduct = sanitizeProductData(product) as StoredProduct;
 
-    // Sanitize product name to prevent NSFW triggers
-    const sanitizedProductName = this.sanitizeProductName(safeProduct.name);
+    // Extract benefit concepts instead of using product name
+    const benefitConcepts = this.extractBenefitConcepts(safeProduct);
+    const visualMetaphors = this.getVisualMetaphors(benefitConcepts);
 
     const styleModifiers = STYLE_MODIFIERS[preferences.brand_style];
     const campaignType = CAMPAIGN_TYPES[preferences.campaign_type];
     const formatAspect = this.getFormatDescription(format);
 
-    // Simplified text preservation - focusing on core requirements
-    const textPreservation = preferences.campaign_type === 'product_focus'
-      ? 'clear readable product text and labels'
-      : 'visible branding when shown';
+    // Get brand context without product specifics
+    const brandName = safeProduct.brand || 'Amway';
+    const categoryContext = safeProduct.category || 'wellness';
 
-    // Simplified, reliable prompt structure
+    // Select compliance safeguard
+    const complianceSafeguard = COMPLIANCE_SAFEGUARDS[Math.floor(Math.random() * COMPLIANCE_SAFEGUARDS.length)];
+
+    // Build benefit-focused prompt structure
+    const primaryConcept = benefitConcepts[0] || 'wellness enhancement concepts';
+    const visualMetaphor = visualMetaphors[0] || 'harmonious composition';
+
     const rawPrompt = `
-Professional ${preferences.brand_style} photograph of ${sanitizedProductName} product,
-${textPreservation},
+${campaignType.basePrompt} ${primaryConcept} for ${categoryContext} lifestyle,
+${visualMetaphor},
+${brandName} brand aesthetic guidelines,
+${styleModifiers.mood} atmosphere,
+${styleModifiers.lighting},
 ${campaignType.emphasis},
 ${formatAspect},
-${styleModifiers.lighting},
-clean composition,
-commercial photography quality,
-marketing image
+${complianceSafeguard},
+professional commercial photography quality,
+marketing imagery without product replication
 `.replace(/\s+/g, ' ').trim();
 
     // Sanitize the final prompt
@@ -369,25 +452,25 @@ marketing image
     const variations: string[] = [];
 
     if (campaignType === 'product_focus') {
-      const productVariations = [
-        `${basePrompt}, hero product shot, centered composition`,
-        `${basePrompt}, product with packaging, brand elements visible`,
-        `${basePrompt}, macro detail shot, texture and quality focus`,
-        `${basePrompt}, product group arrangement, family of products`,
-        `${basePrompt}, floating product, minimalist background`,
-        `${basePrompt}, artistic product styling, premium presentation`,
-        `${basePrompt}, product in natural environment, lifestyle context`
+      const benefitFocusVariations = [
+        `${basePrompt}, aspirational lifestyle hero composition, benefit-centered imagery`,
+        `${basePrompt}, wellness concept visualization, brand values representation`,
+        `${basePrompt}, lifestyle enhancement focus, conceptual benefit illustration`,
+        `${basePrompt}, holistic wellness imagery, brand aesthetic harmony`,
+        `${basePrompt}, benefit outcome visualization, inspiring lifestyle concepts`,
+        `${basePrompt}, wellness journey representation, brand story illustration`,
+        `${basePrompt}, lifestyle transformation concepts, aspirational benefit imagery`
       ];
-      variations.push(...productVariations.slice(0, count));
+      variations.push(...benefitFocusVariations.slice(0, count));
     } else {
       const lifestyleVariations = [
-        `${basePrompt}, person enjoying product benefits, genuine smile`,
-        `${basePrompt}, before and after transformation, inspiring story`,
-        `${basePrompt}, family using product together, bonding moment`,
-        `${basePrompt}, active lifestyle scene, product in daily routine`,
-        `${basePrompt}, cozy home environment, product as part of wellness routine`,
-        `${basePrompt}, morning routine integration, fresh start energy`,
-        `${basePrompt}, wellness journey moment, personal transformation`
+        `${basePrompt}, person experiencing wellness benefits, genuine joy and confidence`,
+        `${basePrompt}, lifestyle transformation journey, inspiring personal growth story`,
+        `${basePrompt}, family wellness moments, shared healthy living experiences`,
+        `${basePrompt}, active wellness lifestyle, daily benefit integration scenes`,
+        `${basePrompt}, peaceful home wellness environment, harmonious living spaces`,
+        `${basePrompt}, morning wellness routine, fresh start energy and vitality`,
+        `${basePrompt}, wellness community moments, shared benefit experiences`
       ];
       variations.push(...lifestyleVariations.slice(0, count));
     }

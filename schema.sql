@@ -26,7 +26,7 @@ CREATE TABLE campaigns (
     brand_style TEXT NOT NULL CHECK (brand_style IN ('professional', 'casual', 'wellness', 'luxury')),
     color_scheme TEXT NOT NULL CHECK (color_scheme IN ('amway_brand', 'product_inspired', 'custom')),
     text_overlay TEXT NOT NULL CHECK (text_overlay IN ('minimal', 'moderate', 'heavy')),
-    campaign_size INTEGER NOT NULL CHECK (campaign_size IN (5, 10, 15)),
+    campaign_size INTEGER NOT NULL CHECK (campaign_size = 5),
     image_formats TEXT NOT NULL, -- JSON array of selected formats
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'generating', 'completed', 'failed')),
     download_url TEXT,
