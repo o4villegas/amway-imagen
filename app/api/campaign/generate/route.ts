@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for real AI test override from frontend
-    const requestData = await request.json();
+    const requestData = await request.json() as any;
     const forceRealAI = process.env.ENABLE_REAL_AI_TESTS === 'true' ||
                        requestData.forceRealAI === true;
 
