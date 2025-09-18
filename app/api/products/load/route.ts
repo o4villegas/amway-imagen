@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { DatabaseManager } from '@/lib/db';
 import { ProductLoader } from '@/lib/product-loader';
 
-export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
   try {
-    // Get environment bindings (with fallbacks for development)
-    const env = process.env as any;
+    // @ts-ignore - Cloudflare Workers bindings
+    const DB = process.env.DB as D1Database | undefined;
+    // @ts-ignore - Cloudflare Workers bindings
+    const CAMPAIGN_STORAGE = process.env.CAMPAIGN_STORAGE as R2Bucket | undefined;
 
     // Mock database in development
     const mockDb = {
@@ -22,8 +23,8 @@ export async function POST(request: NextRequest) {
       })
     };
 
-    const db = new DatabaseManager(env.DB || mockDb as any);
-    const loader = new ProductLoader(db, env.CAMPAIGN_STORAGE || null);
+    const db = new DatabaseManager(DB || mockDb as any);
+    const loader = new ProductLoader(db, CAMPAIGN_STORAGE || null as any);
 
     const requestData = await request.json() as { products?: any[] };
     const { products } = requestData;
@@ -99,12 +100,12 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    // Get environment bindings (with fallbacks for development)
-    const env = process.env as any;
+    // @ts-ignore - Cloudflare Workers bindings
+    const DB = process.env.DB as D1Database | undefined;
 
     // In test/development environment, return mock products
     // Simplify: If there's no real DB binding, use mock data
-    const hasRealDB = env.DB && typeof env.DB.prepare === 'function';
+    const hasRealDB = DB && typeof DB.prepare === 'function';
 
     if (!hasRealDB) {
       // Enhanced mock products dataset - includes available and disabled products
@@ -239,7 +240,7 @@ export async function GET() {
     }
 
     // Production environment - use actual database
-    const db = new DatabaseManager(env.DB);
+    const db = new DatabaseManager(DB!);
     const products = await db.getAllProducts();
 
     return NextResponse.json({

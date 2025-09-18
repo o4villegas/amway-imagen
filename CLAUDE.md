@@ -11,10 +11,10 @@ Amway IBO Image Campaign Generator - A production-ready, specialized application
 ```bash
 npm install          # Install dependencies
 npm run dev          # Run local development server (http://localhost:3000)
-npm run build        # Build Next.js application
+npm run build        # Build with @opennextjs/cloudflare
 npm run lint         # Run ESLint
-npm run preview      # Build and preview with Wrangler Pages (http://localhost:8788)
-npm run deploy       # Deploy to Cloudflare Pages
+npm run preview      # Build and preview with Wrangler Workers (http://localhost:8788)
+npm run deploy       # Deploy to Cloudflare Workers
 npm run cf-typegen   # Generate TypeScript types for Cloudflare environment
 
 # Database commands (after D1 setup)
@@ -38,7 +38,7 @@ npx playwright show-report           # View comprehensive test results
 ### Tech Stack
 - **Frontend**: Next.js 14 with App Router, React 18, TypeScript
 - **Styling**: Tailwind CSS with shadcn/ui components
-- **Deployment**: Cloudflare Pages with Edge Runtime
+- **Deployment**: Cloudflare Workers with Node.js Runtime
 - **AI**: Cloudflare Workers AI API (@cf/black-forest-labs/flux-1-schnell)
 - **Storage**: Cloudflare R2 for campaign ZIP files
 - **Database**: Cloudflare D1 for product data and campaign history

@@ -1,16 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRequestContext } from '@cloudflare/next-on-pages';
+// Cloudflare Workers context will be available via process.env
 import { DatabaseManager } from '@/lib/db';
 
-export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { campaignId: string } }
 ) {
   try {
-    const context = getRequestContext();
-    const { DB } = context.env;
+    // @ts-ignore - Cloudflare Workers bindings
+    const DB = process.env.DB as D1Database | undefined;
+
+    if (!DB) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable' },
+        { status: 503 }
+      );
+    }
+
     const dbManager = new DatabaseManager(DB);
 
     const campaignId = parseInt(params.campaignId);

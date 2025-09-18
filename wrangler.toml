@@ -1,8 +1,8 @@
 #:schema node_modules/wrangler/config-schema.json
-name = "amway-image-generator"
+name = "imagenie-by-amway"
+main = ".open-next/worker.js"
 compatibility_date = "2024-09-25"
-compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = ".vercel/output/static"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 
 [ai]
 binding = "AI"

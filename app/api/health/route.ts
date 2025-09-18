@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRequestContext } from '@cloudflare/next-on-pages';
+// Cloudflare Workers context will be available via process.env
 import { checkDatabaseHealth } from '@/lib/db-utils';
 import { getEnvVar } from '@/lib/env-utils';
 
-export const runtime = 'edge';
 
 interface HealthStatus {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -21,8 +20,8 @@ interface HealthStatus {
 const startTime = Date.now();
 
 export async function GET(request: NextRequest) {
-  const ctx = getRequestContext();
-  const env = ctx.env as any;
+  // Cloudflare Workers bindings available via process.env
+  // Workers bindings will be available directly
 
   const healthStatus: HealthStatus = {
     status: 'healthy',
@@ -38,19 +37,23 @@ export async function GET(request: NextRequest) {
   };
 
   // Check database health
-  if (env.DB) {
+  // @ts-ignore - Cloudflare Workers bindings
+  const DB = process.env.DB as D1Database | undefined;
+  if (DB) {
     try {
-      healthStatus.services.database = await checkDatabaseHealth(env.DB);
+      healthStatus.services.database = await checkDatabaseHealth(DB);
     } catch (error) {
       healthStatus.services.database = false;
     }
   }
 
   // Check R2 storage health
-  if (env.CAMPAIGN_STORAGE) {
+  // @ts-ignore - Cloudflare Workers bindings
+  const CAMPAIGN_STORAGE = process.env.CAMPAIGN_STORAGE as R2Bucket | undefined;
+  if (CAMPAIGN_STORAGE) {
     try {
       // Try to list with limit 1 to check if R2 is accessible
-      await env.CAMPAIGN_STORAGE.list({ limit: 1 });
+      await CAMPAIGN_STORAGE.list({ limit: 1 });
       healthStatus.services.storage = true;
     } catch (error) {
       healthStatus.services.storage = false;
@@ -58,7 +61,9 @@ export async function GET(request: NextRequest) {
   }
 
   // Check AI service health
-  if (env.AI) {
+  // @ts-ignore - Cloudflare Workers bindings
+  const AI = process.env.AI as Ai | undefined;
+  if (AI) {
     try {
       // We can't easily test AI without using credits, so just check if binding exists
       healthStatus.services.ai = true;

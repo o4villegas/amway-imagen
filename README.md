@@ -19,7 +19,7 @@ A powerful, production-ready web application that automatically scrapes Amway pr
 
 ## 🚀 Live Demo
 
-[View Live Application](https://amway-imagen.pages.dev) *(Replace with actual deployment URL)*
+[View Live Application](https://imagenie-by-amway.workers.dev)
 
 ## 📸 Screenshots
 
@@ -34,7 +34,7 @@ A powerful, production-ready web application that automatically scrapes Amway pr
 - **AI**: Cloudflare Workers AI (FLUX-1-schnell model)
 - **UI Components**: shadcn/ui, Radix UI
 - **Testing**: Playwright (E2E), 100% test coverage
-- **Deployment**: Cloudflare Pages
+- **Deployment**: Cloudflare Workers
 
 ## 📋 Prerequisites
 
@@ -47,8 +47,8 @@ A powerful, production-ready web application that automatically scrapes Amway pr
 ### 1. Clone Repository
 
 ```bash
-git clone git@github.com:o4villegas/amway-imagen.git
-cd amway-imagen
+git clone git@github.com:o4villegas/imagenie-by-amway.git
+cd imagenie-by-amway
 ```
 
 ### 2. Install Dependencies
@@ -111,7 +111,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## 🚀 Deployment
 
-### Deploy to Cloudflare Pages
+### Deploy to Cloudflare Workers
 
 ```bash
 npm run deploy
@@ -126,8 +126,8 @@ npm run deploy
 
 2. **Deploy with Wrangler**:
    ```bash
-   npx @cloudflare/next-on-pages
-   wrangler pages deploy .vercel/output/static
+   npx @opennextjs/cloudflare
+   wrangler deploy
    ```
 
 ## 📖 Usage Guide
@@ -340,7 +340,7 @@ Enable detailed logging in development:
 NODE_ENV = "development"
 
 # Run with debug logging
-wrangler pages dev .vercel/output/static --log-level debug
+wrangler dev --log-level debug
 ```
 
 ## 🔒 Security Features
@@ -390,7 +390,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/o4villegas/amway-imagen/issues)
+- **Issues**: [GitHub Issues](https://github.com/o4villegas/imagenie-by-amway/issues)
 - **Documentation**: Check CLAUDE.md for AI assistance guidelines
 - **Cloudflare Docs**: [Workers](https://developers.cloudflare.com/workers/) | [Pages](https://developers.cloudflare.com/pages/) | [D1](https://developers.cloudflare.com/d1/)
 

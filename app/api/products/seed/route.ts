@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRequestContext } from '@cloudflare/next-on-pages';
+// Cloudflare Workers context will be available via process.env
 import { DatabaseManager } from '@/lib/db';
 import { safeLog } from '@/lib/validation';
 
-export const runtime = 'edge';
 
 // Common Amway products for seeding when scraping is unavailable
 const SEED_PRODUCTS = [
@@ -75,15 +74,16 @@ const SEED_PRODUCTS = [
 
 export async function POST(request: NextRequest) {
   try {
-    const context = getRequestContext();
-    const { DB } = context.env;
+    // @ts-ignore - Cloudflare Workers bindings
+    const DB = process.env.DB as D1Database | undefined;
 
     if (!DB) {
       return NextResponse.json(
-        { error: 'Database not available' },
-        { status: 500 }
+        { error: 'Service temporarily unavailable' },
+        { status: 503 }
       );
     }
+
 
     safeLog('Seeding product database with fallback products');
 
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
           // Update existing product if it doesn't have an image URL
           if (!existingProduct.main_image_url || existingProduct.main_image_url === null) {
             try {
-              await DB.prepare(`
+              await DB!.prepare(`
                 UPDATE products
                 SET main_image_url = ?
                 WHERE id = ?

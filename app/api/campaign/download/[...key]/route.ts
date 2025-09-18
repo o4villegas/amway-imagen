@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRequestContext } from '@cloudflare/next-on-pages';
+// Cloudflare Workers context will be available via process.env
 
-export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { key: string[] } }
 ) {
   try {
-    const context = getRequestContext();
-    const { CAMPAIGN_STORAGE } = context.env;
+    // @ts-ignore - Cloudflare Workers bindings
+    const CAMPAIGN_STORAGE = process.env.CAMPAIGN_STORAGE as R2Bucket | undefined;
+
+    if (!CAMPAIGN_STORAGE) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable' },
+        { status: 503 }
+      );
+    }
 
     // Reconstruct the full key from the path segments
     // The path already includes "campaigns/" prefix, so join directly

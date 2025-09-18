@@ -17,8 +17,8 @@
 
 const environments = {
   local: 'http://localhost:8788',
-  staging: 'https://your-staging-url.pages.dev',
-  prod: 'https://your-production-url.pages.dev'
+  staging: 'https://your-staging-url.workers.dev',
+  prod: 'https://your-production-url.workers.dev'
 };
 
 const environment = process.argv[2] || 'local';

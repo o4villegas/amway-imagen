@@ -1,19 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DatabaseManager } from '@/lib/db';
 
-export const runtime = 'edge';
+// This API route is dynamic and should not be statically generated
+export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+
+export async function GET(request: NextRequest, { params }: { params: {} }) {
   try {
-    const { searchParams } = new URL(request.url);
-    const query = searchParams.get('q') || '';
-    const category = searchParams.get('category') || '';
-    const limit = parseInt(searchParams.get('limit') || '20');
+    // Extract query parameters using NextRequest.nextUrl for static compatibility
+    const query = request.nextUrl.searchParams.get('q') || '';
+    const category = request.nextUrl.searchParams.get('category') || '';
+    const limit = parseInt(request.nextUrl.searchParams.get('limit') || '20');
+
+    // @ts-ignore - Cloudflare Workers bindings
+    const DB = process.env.DB as D1Database | undefined;
 
     // In test/development environment, return mock products
     // Simple check: if we can't access real Cloudflare bindings, use mock data
-    const env = process.env as any;
-    const hasRealDB = env.DB && typeof env.DB.prepare === 'function';
+    const hasRealDB = DB && typeof DB.prepare === 'function';
 
     if (!hasRealDB) {
       // Use consistent mock data matching the main product loader
@@ -127,13 +131,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Production environment - use actual database
-    const db = new DatabaseManager(env.DB);
+    const db = new DatabaseManager(DB!);
 
     let products;
 
     if (category && category !== 'all') {
       // Search by category
-      const results = await env.DB.prepare(`
+      const results = await DB!.prepare(`
         SELECT * FROM products
         WHERE category = ?
         ORDER BY updated_at DESC
@@ -143,7 +147,7 @@ export async function GET(request: NextRequest) {
       products = results.results;
     } else if (query) {
       // Search by name or description
-      const results = await env.DB.prepare(`
+      const results = await DB!.prepare(`
         SELECT * FROM products
         WHERE name LIKE ? OR description LIKE ?
         ORDER BY updated_at DESC
@@ -153,7 +157,7 @@ export async function GET(request: NextRequest) {
       products = results.results;
     } else {
       // Get all products
-      const results = await env.DB.prepare(`
+      const results = await DB!.prepare(`
         SELECT * FROM products
         ORDER BY updated_at DESC
         LIMIT ?

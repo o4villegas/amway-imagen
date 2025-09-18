@@ -32,7 +32,7 @@ Comprehensive health check endpoint that verifies all system components.
 #### Usage
 
 ```bash
-curl https://your-app.pages.dev/api/health
+curl https://your-app.workers.dev/api/health
 ```
 
 ### GET /api/health/ready
@@ -62,7 +62,7 @@ Readiness probe to check if the application is ready to serve traffic.
 #### Usage
 
 ```bash
-curl https://your-app.pages.dev/api/health/ready
+curl https://your-app.workers.dev/api/health/ready
 ```
 
 ### GET /api/health/live
@@ -86,7 +86,7 @@ Simple liveness check to verify the application is running.
 #### Usage
 
 ```bash
-curl https://your-app.pages.dev/api/health/live
+curl https://your-app.workers.dev/api/health/live
 ```
 
 ## Core API Endpoints

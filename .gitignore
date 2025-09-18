@@ -38,3 +38,18 @@ next-env.d.ts
 # wrangler files
 .wrangler
 .dev.vars
+
+# opennext build artifacts
+.open-next
+
+# test artifacts
+/test-results/
+/playwright-report/
+worker-configuration.d.ts
+
+# UX analysis artifacts
+ux-analysis-*/
+
+# log files
+*.log
+build.log

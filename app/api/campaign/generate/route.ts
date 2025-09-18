@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRequestContext } from '@cloudflare/next-on-pages';
+// Cloudflare Workers context will be available via process.env
 import { DatabaseManager } from '@/lib/db';
 import { PromptGenerator } from '@/lib/prompt-generator';
 import { ZipCreator, CampaignFile, CampaignMetadata } from '@/lib/zip-creator';
@@ -10,7 +10,6 @@ import { withTimeout, TIMEOUTS, TimeoutError } from '@/lib/timeout-utils';
 import { CAMPAIGN_CONFIG } from '@/lib/config';
 import { isDevelopment, isTest, logError } from '@/lib/env-utils';
 
-export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -31,12 +30,20 @@ export async function POST(request: NextRequest) {
       );
     }
     // Get context and verify bindings
-    let AI: any, CAMPAIGN_STORAGE: any, DB: any;
     let isTestEnvironment = false;
 
+    // @ts-ignore - Cloudflare Workers bindings
+    const AI = process.env.AI as Ai | undefined;
+    // @ts-ignore - Cloudflare Workers bindings
+    const CAMPAIGN_STORAGE = process.env.CAMPAIGN_STORAGE as R2Bucket | undefined;
+    // @ts-ignore - Cloudflare Workers bindings
+    const DB = process.env.DB as D1Database | undefined;
+
     try {
-      const context = getRequestContext();
-      ({ AI, CAMPAIGN_STORAGE, DB } = context.env);
+      // Check if bindings are available
+      if (!AI || !CAMPAIGN_STORAGE || !DB) {
+        isTestEnvironment = true;
+      }
     } catch (error) {
       // In test environment, Cloudflare context is not available
       isTestEnvironment = true;
@@ -101,7 +108,7 @@ export async function POST(request: NextRequest) {
       campaignSize: normalizedPreferences.campaign_size
     });
 
-    const dbManager = new DatabaseManager(DB);
+    const dbManager = new DatabaseManager(DB!);
 
     // Get product information
     const product = await dbManager.getProductById(productId);
@@ -227,7 +234,7 @@ export async function POST(request: NextRequest) {
             // Store image individually in R2 for preview
             if (!isDevelopment()) {
               await withTimeout(
-                CAMPAIGN_STORAGE.put(r2Path, imageBuffer, {
+                CAMPAIGN_STORAGE!.put(r2Path, imageBuffer, {
                 httpMetadata: {
                   contentType: 'image/jpeg',
                   cacheControl: 'public, max-age=3600' // Cache for 1 hour
@@ -339,7 +346,7 @@ export async function POST(request: NextRequest) {
       const campaignKey = `campaigns/${campaignId!}_${Date.now()}.zip`;
       if (!isDevelopment()) {
         await withTimeout(
-          CAMPAIGN_STORAGE.put(campaignKey, zipBuffer, {
+          CAMPAIGN_STORAGE!.put(campaignKey, zipBuffer, {
           httpMetadata: {
             contentType: 'application/zip'
           },

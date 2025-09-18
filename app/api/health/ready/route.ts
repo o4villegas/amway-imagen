@@ -1,20 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRequestContext } from '@cloudflare/next-on-pages';
+// Cloudflare Workers context will be available via process.env
 
-export const runtime = 'edge';
 
 /**
  * Readiness probe - checks if the app is ready to serve traffic
  */
 export async function GET(request: NextRequest) {
-  const ctx = getRequestContext();
-  const env = ctx.env as any;
+  // @ts-ignore - Cloudflare Workers bindings
+  const DB = process.env.DB as D1Database | undefined;
+  // @ts-ignore - Cloudflare Workers bindings
+  const CAMPAIGN_STORAGE = process.env.CAMPAIGN_STORAGE as R2Bucket | undefined;
+  // @ts-ignore - Cloudflare Workers bindings
+  const AI = process.env.AI as Ai | undefined;
 
   // Check if required environment bindings are present
   const checks = {
-    database: !!env.DB,
-    storage: !!env.CAMPAIGN_STORAGE,
-    ai: !!env.AI,
+    database: !!DB,
+    storage: !!CAMPAIGN_STORAGE,
+    ai: !!AI,
     timestamp: new Date().toISOString()
   };
 

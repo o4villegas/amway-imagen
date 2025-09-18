@@ -1,16 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRequestContext } from '@cloudflare/next-on-pages';
+// Cloudflare Workers context will be available via process.env
 import { DatabaseManager } from '@/lib/db';
 
-export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { campaignId: string; imageId: string } }
 ) {
   try {
-    const context = getRequestContext();
-    const { CAMPAIGN_STORAGE, DB } = context.env;
+    // @ts-ignore - Cloudflare Workers bindings
+    const CAMPAIGN_STORAGE = process.env.CAMPAIGN_STORAGE as R2Bucket | undefined;
+    // @ts-ignore - Cloudflare Workers bindings
+    const DB = process.env.DB as D1Database | undefined;
+
+    if (!DB || !CAMPAIGN_STORAGE) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable' },
+        { status: 503 }
+      );
+    }
+
     const dbManager = new DatabaseManager(DB);
 
     const campaignId = parseInt(params.campaignId);
@@ -73,8 +82,16 @@ export async function PATCH(
   { params }: { params: { campaignId: string; imageId: string } }
 ) {
   try {
-    const context = getRequestContext();
-    const { DB } = context.env;
+    // @ts-ignore - Cloudflare Workers bindings
+    const DB = process.env.DB as D1Database | undefined;
+
+    if (!DB) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable' },
+        { status: 503 }
+      );
+    }
+
     const dbManager = new DatabaseManager(DB);
 
     const { selected }: { selected: boolean } = await request.json();

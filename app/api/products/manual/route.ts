@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRequestContext } from '@cloudflare/next-on-pages';
+// Cloudflare Workers context will be available via process.env
 import { DatabaseManager } from '@/lib/db';
 import { rateLimiters } from '@/lib/rate-limiter';
 import { validateRequest, safeLog } from '@/lib/validation';
 import { z } from 'zod';
 
-export const runtime = 'edge';
 
 // Manual product entry schema
 const manualProductSchema = z.object({
@@ -36,8 +35,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const context = getRequestContext();
-    const { DB } = context.env;
+    // @ts-ignore - Cloudflare Workers bindings
+    const DB = process.env.DB as D1Database | undefined;
+
+    if (!DB) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable' },
+        { status: 503 }
+      );
+    }
 
     // Validate and sanitize input
     let requestData;

@@ -64,7 +64,7 @@ test.describe('Performance and Load Time Tests', () => {
     // Listen for image load events
     page.on('response', response => {
       if (response.url().includes('image') || response.url().includes('.png') || response.url().includes('.jpg')) {
-        console.log(`🖼️ Image loaded: ${response.url()} in ${response.timing().responseEnd}ms`);
+        console.log(`🖼️ Image loaded: ${response.url()}`);
       }
     });
 
@@ -85,13 +85,23 @@ test.describe('Performance and Load Time Tests', () => {
     let apiResponseTimes: { [key: string]: number } = {};
 
     // Track API response times
+    const requestStartTimes = new Map<string, number>();
+
+    page.on('request', request => {
+      if (request.url().includes('/api/')) {
+        requestStartTimes.set(request.url(), Date.now());
+      }
+    });
+
     page.on('response', response => {
       const url = response.url();
       if (url.includes('/api/')) {
-        const timing = response.timing();
-        if (timing.responseEnd > 0) {
-          apiResponseTimes[url] = timing.responseEnd;
-          console.log(`🔗 API ${url}: ${timing.responseEnd}ms`);
+        const startTime = requestStartTimes.get(url);
+        if (startTime) {
+          const responseTime = Date.now() - startTime;
+          apiResponseTimes[url] = responseTime;
+          console.log(`🔗 API ${url}: ${responseTime}ms`);
+          requestStartTimes.delete(url);
         }
       }
     });
@@ -278,10 +288,11 @@ test.describe('Performance and Load Time Tests', () => {
       });
     });
 
-    if (lcp > 0) {
-      console.log(`📊 Largest Contentful Paint: ${lcp}ms`);
+    const lcpValue = lcp as number;
+    if (lcpValue > 0) {
+      console.log(`📊 Largest Contentful Paint: ${lcpValue}ms`);
       // LCP should be under 2.5 seconds
-      expect(lcp).toBeLessThan(2500);
+      expect(lcpValue).toBeLessThan(2500);
     }
 
     // Measure First Input Delay by simulating interaction

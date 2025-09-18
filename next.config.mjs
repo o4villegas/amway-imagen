@@ -1,11 +1,4 @@
-import { setupDevPlatform } from '@cloudflare/next-on-pages/next-dev';
-
-// Here we use the @cloudflare/next-on-pages next-dev module to allow us to use bindings during local development
-// (when running the application with `next dev`), for more information see:
-// https://github.com/cloudflare/next-on-pages/blob/main/internal-packages/next-dev/README.md
-if (process.env.NODE_ENV === 'development') {
-  await setupDevPlatform();
-}
+// Cloudflare Workers development setup will be handled by @opennextjs/cloudflare
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -19,7 +12,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'campaign-storage.amway-image-generator.pages.dev',
+        hostname: 'campaign-storage.imagenie-by-amway.workers.dev',
         port: '',
         pathname: '/**',
       },
@@ -52,7 +45,7 @@ const nextConfig = {
       // Allow production domain for image proxy
       {
         protocol: 'https',
-        hostname: '854c4310.amway-image-generator.pages.dev',
+        hostname: 'imagenie-by-amway.workers.dev',
         port: '',
         pathname: '/api/**',
       }

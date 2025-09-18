@@ -7,8 +7,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Amway IBO Image Campaign Generator",
   description: "Generate professional marketing images for your Amway products",
-  viewport: "width=device-width, initial-scale=1",
 };
+
+export const viewport = "width=device-width, initial-scale=1";
 
 export default function RootLayout({
   children,

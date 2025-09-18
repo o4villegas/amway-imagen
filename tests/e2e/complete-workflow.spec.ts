@@ -324,14 +324,16 @@ test.describe('Complete E2E Workflow - AI Generation & UI/UX Journey', () => {
 
         // Close modal
         const closeButton = page.locator('[aria-label="Close"]').or(
-          page.locator('button:has-text("Close")').or(
-            page.keyboard.press('Escape')
-          )
+          page.locator('button:has-text("Close")')
         );
 
-        if (closeButton) {
-          await closeButton;
+        // Try to close with button first, then fallback to ESC key
+        if (await closeButton.isVisible()) {
+          await closeButton.click();
+        } else {
+          await page.keyboard.press('Escape');
         }
+
         console.log('✅ Image preview modal closed');
       }
     }

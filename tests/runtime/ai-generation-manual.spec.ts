@@ -17,7 +17,7 @@ test.describe('Runtime AI Generation Tests', () => {
   test.beforeEach(async ({}, testInfo) => {
     const enableRuntimeTests = process.env.ENABLE_RUNTIME_AI_TESTS === 'true';
     if (!enableRuntimeTests) {
-      testInfo.skip('Runtime AI tests disabled. Set ENABLE_RUNTIME_AI_TESTS=true to enable.');
+      testInfo.skip(true, 'Runtime AI tests disabled. Set ENABLE_RUNTIME_AI_TESTS=true to enable.');
     }
   });
 
