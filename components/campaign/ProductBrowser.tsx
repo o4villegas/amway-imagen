@@ -170,7 +170,7 @@ export function ProductBrowser({ onProductSelected, onManualEntry }: ProductBrow
             const isAvailable = product.available !== false;
             const cardClasses = isAvailable
               ? "border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group"
-              : "border border-gray-200 rounded-lg p-4 opacity-50 grayscale cursor-not-allowed group relative";
+              : "border-2 border-dashed border-gray-300 rounded-lg p-4 opacity-60 grayscale cursor-not-allowed group relative bg-gray-50/80";
 
             return (
               <div
@@ -180,9 +180,14 @@ export function ProductBrowser({ onProductSelected, onManualEntry }: ProductBrow
               >
                 {/* Coming Soon Badge for disabled products */}
                 {!isAvailable && (
-                  <div className="absolute top-2 right-2 bg-gray-600 text-white text-xs px-2 py-1 rounded z-10">
+                  <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs px-3 py-1.5 rounded-full font-medium shadow-md z-10">
                     Coming Soon
                   </div>
+                )}
+
+                {/* Overlay for disabled products */}
+                {!isAvailable && (
+                  <div className="absolute inset-0 bg-white/20 rounded-lg pointer-events-none z-5"></div>
                 )}
 
               {/* Product Image */}
@@ -192,7 +197,9 @@ export function ProductBrowser({ onProductSelected, onManualEntry }: ProductBrow
                     src={getProxiedImageUrl(product.main_image_url)}
                     alt={product.name}
                     fill
-                    className="object-cover group-hover:scale-105 transition-transform"
+                    className={`object-cover transition-transform ${
+                      isAvailable ? "group-hover:scale-105" : ""
+                    }`}
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;

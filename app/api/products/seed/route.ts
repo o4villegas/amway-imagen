@@ -29,7 +29,8 @@ const SEED_PRODUCTS = [
     price: 32.50,
     currency: 'USD',
     main_image_url: '/api/placeholder-image',
-    inventory_status: 'available'
+    inventory_status: 'available',
+    available: true
   },
   {
     amway_product_id: '137823',
@@ -41,7 +42,8 @@ const SEED_PRODUCTS = [
     price: 24.00,
     currency: 'USD',
     main_image_url: '/api/placeholder-image',
-    inventory_status: 'available'
+    inventory_status: 'available',
+    available: false  // Coming soon
   },
   {
     amway_product_id: '326782',
@@ -53,7 +55,8 @@ const SEED_PRODUCTS = [
     price: 199.95,
     currency: 'USD',
     main_image_url: '/api/placeholder-image',
-    inventory_status: 'available'
+    inventory_status: 'available',
+    available: false  // Coming soon
   },
   {
     amway_product_id: '123001',
@@ -65,7 +68,8 @@ const SEED_PRODUCTS = [
     price: 21.95,
     currency: 'USD',
     main_image_url: '/api/placeholder-image',
-    inventory_status: 'available'
+    inventory_status: 'available',
+    available: false  // Coming soon
   }
 ];
 

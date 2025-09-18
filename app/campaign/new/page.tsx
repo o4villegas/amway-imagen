@@ -16,11 +16,21 @@ import { ErrorBoundary, CampaignErrorFallback } from '@/components/ErrorBoundary
 export type CampaignStep = 'select' | 'configure' | 'generate' | 'preview' | 'download';
 
 export interface CampaignPreferences {
-  campaign_type: 'product_focus' | 'lifestyle';
+  campaign_type: 'lifestyle'; // Fixed to lifestyle with benefit-focused approach
   brand_style: 'professional' | 'casual' | 'wellness' | 'luxury';
   color_scheme: 'amway_brand' | 'product_inspired' | 'custom';
   text_overlay: 'minimal' | 'moderate' | 'heavy';
   campaign_size: 5;
+  image_formats: Array<'instagram_post' | 'instagram_story' | 'facebook_cover' | 'pinterest'>;
+}
+
+// Legacy interface for backward compatibility validation (internal use)
+export interface CampaignPreferencesLegacy {
+  campaign_type: 'product_focus' | 'lifestyle';
+  brand_style: 'professional' | 'casual' | 'wellness' | 'luxury';
+  color_scheme: 'amway_brand' | 'product_inspired' | 'custom';
+  text_overlay: 'minimal' | 'moderate' | 'heavy';
+  campaign_size: 1 | 3 | 5 | 10 | 15;
   image_formats: Array<'instagram_post' | 'instagram_story' | 'facebook_cover' | 'pinterest'>;
 }
 
@@ -32,12 +42,12 @@ export interface GenerationResult {
 }
 
 const defaultPreferences: CampaignPreferences = {
-  campaign_type: 'product_focus',
+  campaign_type: 'lifestyle',
   brand_style: 'professional',
   color_scheme: 'amway_brand',
   text_overlay: 'moderate',
   campaign_size: 5,
-  image_formats: ['instagram_post', 'instagram_story']
+  image_formats: ['instagram_post', 'instagram_story', 'facebook_cover', 'pinterest']
 };
 
 export default function NewCampaign() {

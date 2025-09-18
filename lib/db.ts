@@ -96,6 +96,7 @@ export class DatabaseManager {
             currency = ?,
             main_image_url = ?,
             inventory_status = ?,
+            available = ?,
             updated_at = CURRENT_TIMESTAMP
           WHERE product_url = ?
         `).bind(
@@ -108,6 +109,7 @@ export class DatabaseManager {
           productData.currency,
           productData.main_image_url,
           productData.inventory_status,
+          (productData as any).available !== undefined ? (productData as any).available : true,
           productUrl
         ).run();
 
@@ -126,8 +128,9 @@ export class DatabaseManager {
             price,
             currency,
             main_image_url,
-            inventory_status
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            inventory_status,
+            available
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
           productUrl,
           productData.amway_product_id,
@@ -139,7 +142,8 @@ export class DatabaseManager {
           productData.price,
           productData.currency,
           productData.main_image_url,
-          productData.inventory_status
+          productData.inventory_status,
+          (productData as any).available !== undefined ? (productData as any).available : true
         ).run();
 
         if (result.success) {

@@ -16,39 +16,94 @@ export async function GET(request: NextRequest) {
     const hasRealDB = env.DB && typeof env.DB.prepare === 'function';
 
     if (!hasRealDB) {
+      // Use consistent mock data matching the main product loader
       const mockProducts = [
+        // AVAILABLE PRODUCTS (3 working products)
         {
           id: 1,
+          available: true,
           name: 'Artistry Exact Fit Powder Foundation',
-          description: 'Perfect coverage with a natural, seamless finish',
+          description: 'Perfect coverage with a natural, seamless finish that looks like your skin, only better',
           brand: 'Artistry',
           category: 'beauty',
           price: 42.00,
           currency: 'USD',
           main_image_url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAGA=',
-          benefits: 'Long-lasting coverage, natural finish, suitable for all skin types'
+          benefits: 'Long-lasting coverage, natural finish, suitable for all skin types, SPF 15 protection',
+          inventory_status: 'In Stock',
+          product_url: 'https://www.amway.com/product/123',
+          amway_product_id: 'ART001',
+          scraped_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z'
         },
         {
           id: 2,
-          name: 'Nutrilite Women\'s Pack',
-          description: 'Complete nutritional support for women',
+          available: true,
+          name: 'Nutrilite™ Women\'s Pack',
+          description: 'Complete nutritional support specifically formulated for women\'s health needs',
           brand: 'Nutrilite',
           category: 'nutrition',
           price: 89.95,
           currency: 'USD',
           main_image_url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAGA=',
-          benefits: 'Essential vitamins and minerals, immune support, energy enhancement'
+          benefits: 'Essential vitamins and minerals, immune support, energy enhancement, bone health',
+          inventory_status: 'In Stock',
+          product_url: 'https://www.amway.com/product/456',
+          amway_product_id: 'NUT001',
+          scraped_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z'
         },
         {
           id: 3,
-          name: 'eSpring Water Purifier',
-          description: 'Advanced water filtration system',
+          available: true,
+          name: 'eSpring® Water Purifier',
+          description: 'Advanced water filtration system that removes over 140 contaminants',
           brand: 'eSpring',
           category: 'home',
           price: 1199.00,
           currency: 'USD',
           main_image_url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAGA=',
-          benefits: 'Pure, clean water, advanced filtration, long-lasting filters'
+          benefits: 'Pure, clean water, advanced filtration, long-lasting filters, UV light technology',
+          inventory_status: 'In Stock',
+          product_url: 'https://www.amway.com/product/789',
+          amway_product_id: 'ESP001',
+          scraped_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z'
+        },
+        // DISABLED PRODUCTS (Coming Soon)
+        {
+          id: 4,
+          available: false,
+          name: 'Artistry Supreme LX™ Regenerating Eye Cream',
+          description: 'Luxurious anti-aging eye cream with advanced peptide technology',
+          brand: 'Artistry',
+          category: 'beauty',
+          price: 95.00,
+          currency: 'USD',
+          main_image_url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAGA=',
+          benefits: 'Reduces fine lines, firms skin, brightens dark circles, premium ingredients',
+          inventory_status: 'Coming Soon',
+          product_url: 'https://www.amway.com/product/art-002',
+          amway_product_id: 'ART002',
+          scraped_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z'
+        },
+        {
+          id: 5,
+          available: false,
+          name: 'Nutrilite™ Vitamin D',
+          description: 'Essential vitamin D3 supplement for bone health and immune support',
+          brand: 'Nutrilite',
+          category: 'nutrition',
+          price: 24.95,
+          currency: 'USD',
+          main_image_url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAGA=',
+          benefits: 'Bone strength, immune function, calcium absorption, high potency',
+          inventory_status: 'Coming Soon',
+          product_url: 'https://www.amway.com/product/nut-002',
+          amway_product_id: 'NUT002',
+          scraped_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z'
         }
       ];
 
@@ -119,7 +174,8 @@ export async function GET(request: NextRequest) {
       currency: product.currency,
       main_image_url: product.main_image_url,
       inventory_status: product.inventory_status,
-      product_url: product.product_url
+      product_url: product.product_url,
+      available: product.available !== undefined ? product.available : true
     }));
 
     return NextResponse.json({

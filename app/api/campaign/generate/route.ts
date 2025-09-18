@@ -3,9 +3,9 @@ import { getRequestContext } from '@cloudflare/next-on-pages';
 import { DatabaseManager } from '@/lib/db';
 import { PromptGenerator } from '@/lib/prompt-generator';
 import { ZipCreator, CampaignFile, CampaignMetadata } from '@/lib/zip-creator';
-import { CampaignPreferences } from '@/app/campaign/new/page';
+import { CampaignPreferences, CampaignPreferencesLegacy } from '@/app/campaign/new/page';
 import { rateLimiters } from '@/lib/rate-limiter';
-import { generateCampaignSchema, validateRequest, safeLog } from '@/lib/validation';
+import { generateCampaignSchema, validateRequest, validateCampaignRequest, safeLog } from '@/lib/validation';
 import { withTimeout, TIMEOUTS, TimeoutError } from '@/lib/timeout-utils';
 import { CAMPAIGN_CONFIG } from '@/lib/config';
 import { isDevelopment, isTest, logError } from '@/lib/env-utils';
@@ -50,8 +50,10 @@ export async function POST(request: NextRequest) {
 
     // In test environment, return mock success response (unless real AI is forced)
     if ((isTestEnvironment || isTest()) && !forceRealAI) {
-      // Still validate the request data
-      const { productId, preferences } = validateRequest(generateCampaignSchema, requestData);
+      // Still validate the request data with backward compatibility
+      const { productId, preferences } = validateCampaignRequest(requestData);
+      // Type assertion safe since validateCampaignRequest normalizes to current format
+      const normalizedPreferences = preferences as CampaignPreferences;
 
       // Return mock success response for testing
       return NextResponse.json({
@@ -59,9 +61,9 @@ export async function POST(request: NextRequest) {
         campaignId: 123,
         downloadUrl: '/api/campaign/download/test-campaign.zip',
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        totalImages: preferences.campaign_size,
-        successfulImages: preferences.campaign_size,
-        requestedImages: preferences.campaign_size,
+        totalImages: normalizedPreferences.campaign_size,
+        successfulImages: normalizedPreferences.campaign_size,
+        requestedImages: normalizedPreferences.campaign_size,
         generationTimeSeconds: 2.5
       });
     }
@@ -88,13 +90,15 @@ export async function POST(request: NextRequest) {
       hasDB: !!DB
     });
 
-    // Validate and sanitize input (already parsed above for real AI check)
-    const { productId, preferences } = validateRequest(generateCampaignSchema, requestData);
+    // Validate and sanitize input with backward compatibility
+    const { productId, preferences } = validateCampaignRequest(requestData);
+    // Type assertion safe since validateCampaignRequest normalizes to current format
+    const normalizedPreferences = preferences as CampaignPreferences;
 
     safeLog('Campaign generation started', {
       productId,
-      campaignType: preferences.campaign_type,
-      campaignSize: preferences.campaign_size
+      campaignType: normalizedPreferences.campaign_type,
+      campaignSize: normalizedPreferences.campaign_size
     });
 
     const dbManager = new DatabaseManager(DB);
@@ -123,17 +127,17 @@ export async function POST(request: NextRequest) {
       // Create campaign record
       campaignId = await dbManager.createCampaign({
         product_id: productId,
-        campaign_type: preferences.campaign_type,
-        brand_style: preferences.brand_style,
-        color_scheme: preferences.color_scheme,
-        text_overlay: preferences.text_overlay,
-        campaign_size: preferences.campaign_size,
-        image_formats: preferences.image_formats,
+        campaign_type: normalizedPreferences.campaign_type,
+        brand_style: normalizedPreferences.brand_style,
+        color_scheme: normalizedPreferences.color_scheme,
+        text_overlay: normalizedPreferences.text_overlay,
+        campaign_size: normalizedPreferences.campaign_size,
+        image_formats: normalizedPreferences.image_formats,
         status: 'generating'
       });
       // Generate prompts
       const promptGenerator = new PromptGenerator();
-      const imagePrompts = promptGenerator.generateCampaignPrompts(product, preferences);
+      const imagePrompts = promptGenerator.generateCampaignPrompts(product, normalizedPreferences);
 
       const generatedImages: CampaignFile[] = [];
       const maxConcurrent = CAMPAIGN_CONFIG.MAX_CONCURRENT_GENERATIONS;
@@ -318,9 +322,9 @@ export async function POST(request: NextRequest) {
           category: product.category
         },
         preferences: {
-          campaign_type: preferences.campaign_type,
-          brand_style: preferences.brand_style,
-          campaign_size: preferences.campaign_size
+          campaign_type: normalizedPreferences.campaign_type,
+          brand_style: normalizedPreferences.brand_style,
+          campaign_size: normalizedPreferences.campaign_size
         },
         usage: 'Created with Amway IBO Image Campaign Generator'
       };

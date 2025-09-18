@@ -24,14 +24,6 @@ export function PreferencesPanel({ preferences, onChange, onComplete }: Preferen
     onChange({ ...preferences, [key]: value });
   };
 
-  const toggleImageFormat = (format: CampaignPreferences['image_formats'][0]) => {
-    const current = preferences.image_formats;
-    const updated = current.includes(format)
-      ? current.filter(f => f !== format)
-      : [...current, format];
-    updatePreference('image_formats', updated);
-  };
-
   const imageFormatOptions = [
     {
       id: 'instagram_post',
@@ -60,7 +52,7 @@ export function PreferencesPanel({ preferences, onChange, onComplete }: Preferen
   ] as const;
 
   const isValid = () => {
-    return preferences.image_formats.length > 0;
+    return true; // Always valid since we removed user selection
   };
 
   return (
@@ -75,34 +67,22 @@ export function PreferencesPanel({ preferences, onChange, onComplete }: Preferen
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Campaign Type */}
+        {/* Campaign Approach */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center text-base">
               <Camera className="h-4 w-4 mr-2" />
-              Campaign Focus
+              Campaign Approach
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <RadioGroup
-              value={preferences.campaign_type}
-              onValueChange={(value) => updatePreference('campaign_type', value as any)}
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="product_focus" id="product_focus" />
-                <Label htmlFor="product_focus" className="text-sm">
-                  <div className="font-medium">Product Focus</div>
-                  <div className="text-gray-500">Clean product shots, professional photography style</div>
-                </Label>
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="font-medium text-blue-900 mb-2">Benefit-Focused Marketing</div>
+              <div className="text-sm text-blue-700">
+                Your campaign will showcase the transformation and benefits your product delivers,
+                focusing on customer outcomes rather than product features.
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="lifestyle" id="lifestyle" />
-                <Label htmlFor="lifestyle" className="text-sm">
-                  <div className="font-medium">Lifestyle Focus</div>
-                  <div className="text-gray-500">People using the product, real-life scenarios</div>
-                </Label>
-              </div>
-            </RadioGroup>
+            </div>
           </CardContent>
         </Card>
 
@@ -202,36 +182,38 @@ export function PreferencesPanel({ preferences, onChange, onComplete }: Preferen
         </Card>
       </div>
 
-      {/* Image Formats */}
+      {/* Image Formats Distribution */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center text-base">
             <Layout className="h-4 w-4 mr-2" />
-            Image Formats ({preferences.image_formats.length} selected)
+            Smart Format Distribution
           </CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="p-4 bg-green-50 rounded-lg border border-green-200 mb-4">
+            <div className="font-medium text-green-900 mb-2">Optimized for Maximum Reach</div>
+            <div className="text-sm text-green-700">
+              Your 5 images will be automatically distributed across key social media formats for comprehensive coverage.
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {imageFormatOptions.map((format) => (
-              <div key={format.id} className="flex items-start space-x-3">
-                <Checkbox
-                  id={format.id}
-                  checked={preferences.image_formats.includes(format.id)}
-                  onCheckedChange={() => toggleImageFormat(format.id)}
-                />
-                <Label htmlFor={format.id} className="text-sm">
-                  <div className="font-medium">{format.label}</div>
-                  <div className="text-gray-500">{format.description}</div>
-                  <div className="text-xs text-gray-400">{format.dimensions}</div>
-                </Label>
+              <div key={format.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                <div className="w-3 h-3 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
+                <div className="text-sm">
+                  <div className="font-medium text-gray-900">{format.label}</div>
+                  <div className="text-gray-600">{format.description}</div>
+                  <div className="text-xs text-gray-500 mt-1">{format.dimensions}</div>
+                </div>
               </div>
             ))}
           </div>
-          {preferences.image_formats.length === 0 && (
-            <p className="text-sm text-red-600 mt-2">
-              Please select at least one image format.
-            </p>
-          )}
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+            <div className="text-sm text-blue-800">
+              <strong>Distribution Strategy:</strong> Images are intelligently sized and optimized for each platform&apos;s best practices.
+            </div>
+          </div>
         </CardContent>
       </Card>
 

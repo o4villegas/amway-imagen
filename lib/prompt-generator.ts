@@ -114,6 +114,25 @@ const COMPLIANCE_SAFEGUARDS = [
   'focus on lifestyle enhancement rather than product features'
 ] as const;
 
+// DEPRECATED: FLUX-1-schnell doesn't support negative prompts
+// These terms are kept for reference but converted to positive guidance
+// See lifestyleInstructions in generateBasePrompt() for actual implementation
+const LIFESTYLE_NEGATIVE_PROMPTS = [
+  'no visible product bottles',
+  'no product containers',
+  'no supplement bottles',
+  'no product packaging',
+  'no branded containers',
+  'no product labels',
+  'no pills or capsules',
+  'no cosmetic containers',
+  'no cream jars',
+  'no cleaning product bottles',
+  'avoid product-focused imagery',
+  'no commercial product displays',
+  'no product placement'
+] as const;
+
 // FLUX-1-schnell specific text preservation techniques
 const TEXT_PRESERVATION_TECHNIQUES = {
   // Core techniques for text clarity
@@ -385,6 +404,14 @@ marketing quality
     const primaryConcept = benefitConcepts[0] || 'wellness enhancement concepts';
     const visualMetaphor = visualMetaphors[0] || 'harmonious composition';
 
+    // Add lifestyle-specific instructions to avoid product imagery
+    let lifestyleInstructions = '';
+    if (preferences.campaign_type === 'lifestyle') {
+      // Use positive phrasing to guide FLUX-1-schnell away from products
+      // Since FLUX doesn't support negative prompts, we phrase as positive guidance
+      lifestyleInstructions = ', abstract lifestyle visualization, environmental and emotional focus, people and lifestyle settings without physical products or containers';
+    }
+
     const rawPrompt = `
 ${campaignType.basePrompt} ${primaryConcept} for ${categoryContext} lifestyle,
 ${visualMetaphor},
@@ -395,7 +422,7 @@ ${campaignType.emphasis},
 ${formatAspect},
 ${complianceSafeguard},
 professional commercial photography quality,
-marketing imagery without product replication
+marketing imagery without product replication${lifestyleInstructions}
 `.replace(/\s+/g, ' ').trim();
 
     // Sanitize the final prompt

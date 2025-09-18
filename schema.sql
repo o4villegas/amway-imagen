@@ -14,6 +14,7 @@ CREATE TABLE products (
     currency TEXT DEFAULT 'USD',
     main_image_url TEXT,
     inventory_status TEXT,
+    available BOOLEAN DEFAULT 1, -- Whether product is available for campaigns
     scraped_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

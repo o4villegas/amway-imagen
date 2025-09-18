@@ -34,7 +34,7 @@ export const urlSchema = z.object({
 
 // Campaign preferences validation
 export const campaignPreferencesSchema = z.object({
-  campaign_type: z.enum(['product_focus', 'lifestyle']),
+  campaign_type: z.literal('lifestyle'), // Fixed to lifestyle with benefit-focused approach
   brand_style: z.enum(['professional', 'casual', 'wellness', 'luxury']),
   color_scheme: z.enum(['amway_brand', 'product_inspired', 'custom']),
   text_overlay: z.enum(['minimal', 'moderate', 'heavy']),
@@ -44,10 +44,29 @@ export const campaignPreferencesSchema = z.object({
     .max(4, 'Maximum 4 image formats allowed')
 });
 
+// Backward compatible campaign preferences validation - allows legacy sizes but normalizes to 5
+export const campaignPreferencesSchemaLegacy = z.object({
+  campaign_type: z.enum(['product_focus', 'lifestyle']).transform(val => 'lifestyle' as const), // Normalize to lifestyle
+  brand_style: z.enum(['professional', 'casual', 'wellness', 'luxury']),
+  color_scheme: z.enum(['amway_brand', 'product_inspired', 'custom']),
+  text_overlay: z.enum(['minimal', 'moderate', 'heavy']),
+  campaign_size: z.union([z.literal(1), z.literal(3), z.literal(5), z.literal(10), z.literal(15)])
+    .transform(val => 5 as const), // Always normalize to 5 images
+  image_formats: z.array(z.enum(['instagram_post', 'instagram_story', 'facebook_cover', 'pinterest']))
+    .min(1, 'At least one image format is required')
+    .max(4, 'Maximum 4 image formats allowed')
+});
+
 // Campaign generation request validation
 export const generateCampaignSchema = z.object({
   productId: z.number().int().positive('Product ID must be a positive integer'),
   preferences: campaignPreferencesSchema
+});
+
+// Legacy campaign generation request validation
+export const generateCampaignSchemaLegacy = z.object({
+  productId: z.number().int().positive('Product ID must be a positive integer'),
+  preferences: campaignPreferencesSchemaLegacy
 });
 
 // Image selection validation
@@ -132,5 +151,30 @@ export const validateRequest = <T>(schema: z.ZodSchema<T>, data: any): T => {
       throw new Error(`Validation failed: ${message}`);
     }
     throw error;
+  }
+};
+
+// Validate campaign request with backward compatibility
+export const validateCampaignRequest = (data: any) => {
+  try {
+    // Try strict validation first
+    return validateRequest(generateCampaignSchema, data);
+  } catch (strictError) {
+    safeLog('Strict validation failed, trying legacy validation', {
+      error: strictError instanceof Error ? strictError.message : 'Unknown error'
+    });
+
+    try {
+      // Fall back to legacy validation with transformations
+      const result = validateRequest(generateCampaignSchemaLegacy, data);
+      safeLog('Legacy validation succeeded - data normalized', {
+        originalSize: data.preferences?.campaign_size,
+        normalizedSize: result.preferences.campaign_size
+      });
+      return result;
+    } catch (legacyError) {
+      // If both fail, throw the original strict error
+      throw strictError;
+    }
   }
 };
