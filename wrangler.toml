@@ -4,6 +4,10 @@ main = ".open-next/worker.js"
 compatibility_date = "2024-09-25"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 
+# Explicitly configure as Workers (not Pages)
+[build]
+command = "npm run build:worker"
+
 [ai]
 binding = "AI"
 

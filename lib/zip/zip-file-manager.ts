@@ -100,15 +100,15 @@ export class ZipFileManager {
     return [
       {
         name: 'campaign_info.json',
-        data: new TextEncoder().encode(JSON.stringify(metadata, null, 2))
+        data: new TextEncoder().encode(JSON.stringify(metadata, null, 2)).buffer
       },
       {
         name: 'USAGE_GUIDELINES.txt',
-        data: new TextEncoder().encode(this.generateUsageGuidelines(metadata))
+        data: new TextEncoder().encode(this.generateUsageGuidelines(metadata)).buffer
       },
       {
         name: 'README.md',
-        data: new TextEncoder().encode(this.generateReadme(metadata))
+        data: new TextEncoder().encode(this.generateReadme(metadata)).buffer
       }
     ];
   }

@@ -11,7 +11,8 @@ Amway IBO Image Campaign Generator - A production-ready, specialized application
 ```bash
 npm install          # Install dependencies
 npm run dev          # Run local development server (http://localhost:3000)
-npm run build        # Build with @opennextjs/cloudflare
+npm run build        # Build for Next.js
+npm run build:worker # Build with @opennextjs/cloudflare for Workers deployment
 npm run lint         # Run ESLint
 npm run preview      # Build and preview with Wrangler Workers (http://localhost:8788)
 npm run deploy       # Deploy to Cloudflare Workers
@@ -59,7 +60,9 @@ npx playwright show-report           # View comprehensive test results
 - `/lib` - Core business logic
   - `scraper.ts` - Amway website scraping functionality
   - `prompt-generator.ts` - AI prompt generation system
-  - `zip-creator.ts` - Campaign packaging and ZIP creation
+  - `zip/` - Campaign packaging and ZIP creation utilities
+    - `zip-builder.ts` - Core ZIP file building functionality
+    - `zip-file-manager.ts` - ZIP file management and organization
   - `db.ts` - D1 database operations
 
 ### Core Functionality
@@ -76,7 +79,7 @@ npx playwright show-report           # View comprehensive test results
    - Brand style: Professional, Casual, Wellness, Luxury
    - Image formats: Instagram Post/Story, Facebook Cover, Pinterest
    - Text overlay density: Minimal, Moderate, Heavy
-   - Campaign size: 5, 10, or 15 images
+   - Campaign size: Standardized to 5 images per campaign
 
 3. **AI Image Generation Pipeline**:
    - Dynamic prompt generation based on product data and preferences
@@ -132,6 +135,7 @@ npx playwright show-report           # View comprehensive test results
 - Production-safe logging with `devLog` from `lib/env-utils.ts`
 - Request deduplication available via `lib/request-dedup.ts`
 - Health checks available at `/api/health`, `/api/health/ready`, `/api/health/live`
+- **Recent Improvements**: Complete Cloudflare Workers migration with enhanced UI/UX and benefit-focused AI strategy
 
 ### Text Preservation in AI Image Generation
 
