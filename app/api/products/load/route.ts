@@ -124,17 +124,39 @@ export async function POST(request: NextRequest) {
       console.log(`[SCRAPING] Stage 4: Caching result...`);
       await cache.cacheProduct(url, extractionResult);
 
-      // Get the stored product for consistent response format (normalize URL to match cache)
+      // Try to get the stored product for consistent response format
       const normalizedUrl = new URL(url).href;
       console.log(`[SCRAPING] Retrieving stored product - Original URL: ${url}`);
       console.log(`[SCRAPING] Retrieving stored product - Normalized URL: ${normalizedUrl}`);
       const storedProduct = await db.getProduct(normalizedUrl);
 
-      if (!storedProduct) {
-        throw new Error('Failed to retrieve stored product after caching');
-      }
-
       console.log(`[SCRAPING] Successfully completed extraction for: ${extractionResult.name}`);
+
+      // If we can't retrieve the stored product, return the extraction result directly
+      if (!storedProduct) {
+        console.log(`[SCRAPING] Warning: Could not retrieve stored product, returning extraction result directly`);
+
+        return NextResponse.json({
+          success: true,
+          fromCache: false,
+          product: {
+            id: -1, // Temporary ID
+            name: extractionResult.name,
+            description: extractionResult.description,
+            benefits: Array.isArray(extractionResult.benefits) ? extractionResult.benefits : extractionResult.benefits.split('. '),
+            category: extractionResult.category,
+            brand: extractionResult.brand,
+            price: extractionResult.price,
+            currency: extractionResult.currency,
+            main_image_url: extractionResult.imageUrl,
+            product_url: url
+          },
+          extraction: {
+            confidence: extractionResult.confidence,
+            cached_until: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+          }
+        });
+      }
 
       return NextResponse.json({
         success: true,
