@@ -447,11 +447,13 @@ export class DatabaseManager {
         console.log(`[DB] Product URL: ${url}`);
         console.log(`[DB] Product Name: ${productData.name}`);
 
+        let result;
+
         try {
           // First try to delete any existing entry to avoid conflicts
           await this.db.prepare('DELETE FROM products WHERE product_url = ?').bind(url).run();
 
-          const result = await this.db.prepare(`
+          result = await this.db.prepare(`
             INSERT INTO products (
               product_url,
               amway_product_id,

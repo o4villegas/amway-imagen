@@ -99,13 +99,22 @@ export async function POST(request: NextRequest) {
       }
 
       // Test 3: Test DatabaseManager method
+      const dmTestData = {
+        amway_product_id: `DM_${timestamp}`,
+        name: 'DatabaseManager Test Product',
+        description: testData.description,
+        benefits: testData.benefits,
+        category: testData.category,
+        brand: testData.brand,
+        price: testData.price,
+        currency: testData.currency,
+        main_image_url: testData.main_image_url,
+        inventory_status: testData.inventory_status
+      };
+
       const dmResult = await db.saveProductWithCache(
         `https://test.amway.com/dm-test-${timestamp}`,
-        {
-          ...testData,
-          product_url: `https://test.amway.com/dm-test-${timestamp}`,
-          amway_product_id: `DM_${timestamp}`
-        },
+        dmTestData,
         new Date(Date.now() + 24 * 60 * 60 * 1000)
       );
 
