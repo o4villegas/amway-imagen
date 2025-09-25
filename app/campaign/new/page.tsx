@@ -46,6 +46,7 @@ const defaultPreferences: CampaignPreferences = {
   campaign_type: 'lifestyle',
   brand_style: 'professional',
   color_scheme: 'amway_brand',
+  text_overlay: 'moderate',
   campaign_size: 5,
   image_formats: ['facebook_post', 'instagram_post', 'pinterest', 'snapchat_ad', 'linkedin_post']
 };
