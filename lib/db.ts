@@ -447,64 +447,61 @@ export class DatabaseManager {
         console.log(`[DB] Product URL: ${url}`);
         console.log(`[DB] Product Name: ${productData.name}`);
 
-        const result = await this.db.prepare(`
-          INSERT INTO products (
-            product_url,
-            amway_product_id,
-            name,
-            description,
-            benefits,
-            category,
-            brand,
-            price,
-            currency,
-            main_image_url,
-            inventory_status,
-            available,
-            scraping_method,
-            cached_until
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'claude-api', ?)
-          ON CONFLICT(product_url) DO UPDATE SET
-            amway_product_id = excluded.amway_product_id,
-            name = excluded.name,
-            description = excluded.description,
-            benefits = excluded.benefits,
-            category = excluded.category,
-            brand = excluded.brand,
-            price = excluded.price,
-            currency = excluded.currency,
-            main_image_url = excluded.main_image_url,
-            inventory_status = excluded.inventory_status,
-            available = excluded.available,
-            scraping_method = 'claude-api',
-            cached_until = excluded.cached_until,
-            updated_at = CURRENT_TIMESTAMP
-        `).bind(
-          url,
-          productData.amway_product_id,
-          productData.name,
-          productData.description,
-          productData.benefits,
-          productData.category,
-          productData.brand,
-          productData.price,
-          productData.currency,
-          productData.main_image_url,
-          productData.inventory_status,
-          (productData as any).available !== undefined ? (productData as any).available : true,
-          expiresAt.toISOString()
-        ).run();
+        try {
+          // First try to delete any existing entry to avoid conflicts
+          await this.db.prepare('DELETE FROM products WHERE product_url = ?').bind(url).run();
 
-        console.log(`[DB] Insert result:`, result);
+          const result = await this.db.prepare(`
+            INSERT INTO products (
+              product_url,
+              amway_product_id,
+              name,
+              description,
+              benefits,
+              category,
+              brand,
+              price,
+              currency,
+              main_image_url,
+              inventory_status,
+              available,
+              scraping_method,
+              cached_until
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'claude-api', ?)
+          `).bind(
+            url,
+            productData.amway_product_id,
+            productData.name,
+            productData.description,
+            productData.benefits,
+            productData.category,
+            productData.brand,
+            productData.price,
+            productData.currency,
+            productData.main_image_url,
+            productData.inventory_status,
+            (productData as any).available !== undefined ? (productData as any).available : true,
+            expiresAt.toISOString()
+          ).run();
+
+          console.log(`[DB] INSERT result:`, JSON.stringify(result, null, 2));
+        } catch (insertError) {
+          console.error(`[DB] INSERT failed with error:`, insertError);
+          throw new Error(`Database INSERT failed: ${insertError}`);
+        }
 
         if (result.success) {
-          console.log(`[DB] Successfully inserted product with ID ${result.meta?.last_row_id}`);
+          console.log(`[DB] Successfully upserted product with changes: ${result.meta?.changes}, last_row_id: ${result.meta?.last_row_id}`);
           const retrieved = await this.getProduct(url);
-          console.log(`[DB] Retrieved product after insert:`, retrieved ? 'Found' : 'Not found');
-          return retrieved as StoredProduct;
+          console.log(`[DB] Retrieved product after upsert:`, retrieved ? `Found: ID ${retrieved.id}` : 'Not found');
+          if (retrieved) {
+            return retrieved;
+          } else {
+            throw new Error(`UPSERT succeeded but product retrieval failed - URL mismatch issue`);
+          }
         } else {
-          console.error(`[DB] Failed to insert product - result.success is false`);
-          throw new Error(`Failed to save cached product to database: ${JSON.stringify(result)}`);
+          console.error(`[DB] UPSERT failed - result.success is false`);
+          throw new Error(`Failed to upsert cached product to database: ${JSON.stringify(result)}`);
         }
       }
     } catch (error) {
