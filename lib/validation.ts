@@ -41,7 +41,7 @@ export const campaignPreferencesSchema = z.object({
   campaign_size: z.literal(5),
   image_formats: z.array(z.enum(['facebook_post', 'instagram_post', 'pinterest', 'snapchat_ad', 'linkedin_post']))
     .min(1, 'At least one image format is required')
-    .max(4, 'Maximum 4 image formats allowed')
+    .max(5, 'Maximum 5 image formats allowed')
 });
 
 // Backward compatible campaign preferences validation - allows legacy sizes but normalizes to 5
@@ -54,7 +54,7 @@ export const campaignPreferencesSchemaLegacy = z.object({
     .transform(val => 5 as const), // Always normalize to 5 images
   image_formats: z.array(z.enum(['facebook_post', 'instagram_post', 'pinterest', 'snapchat_ad', 'linkedin_post']))
     .min(1, 'At least one image format is required')
-    .max(4, 'Maximum 4 image formats allowed')
+    .max(5, 'Maximum 5 image formats allowed')
 });
 
 // Campaign generation request validation

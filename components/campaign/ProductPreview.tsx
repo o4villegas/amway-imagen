@@ -59,25 +59,9 @@ export function ProductPreview({ product }: ProductPreviewProps) {
 
       <Card>
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Product Image */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Product Category and Status */}
             <div className="space-y-4">
-              {product.main_image_url ? (
-                <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                  <Image
-                    src={product.main_image_url}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 25vw"
-                  />
-                </div>
-              ) : (
-                <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Package className="h-12 w-12 text-gray-400" />
-                </div>
-              )}
-
               <div className="flex items-center justify-between">
                 <Badge className={getCategoryColor(product.category)}>
                   {product.category}
@@ -90,7 +74,7 @@ export function ProductPreview({ product }: ProductPreviewProps) {
             </div>
 
             {/* Product Details */}
-            <div className="lg:col-span-2 space-y-4">
+            <div className="space-y-4">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   {product.name}
