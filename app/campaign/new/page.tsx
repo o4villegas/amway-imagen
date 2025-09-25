@@ -20,6 +20,7 @@ export interface CampaignPreferences {
   campaign_type: 'lifestyle'; // Fixed to lifestyle with benefit-focused approach
   brand_style: 'professional' | 'casual' | 'wellness' | 'luxury';
   color_scheme: 'amway_brand' | 'product_inspired' | 'custom';
+  text_overlay: 'minimal' | 'moderate' | 'heavy';
   campaign_size: 5;
   image_formats: Array<'facebook_post' | 'instagram_post' | 'pinterest' | 'snapchat_ad' | 'linkedin_post'>;
 }

@@ -28,6 +28,7 @@ export interface Campaign {
   campaign_type: 'product_focus' | 'lifestyle';
   brand_style: 'professional' | 'casual' | 'wellness' | 'luxury';
   color_scheme: 'amway_brand' | 'product_inspired' | 'custom';
+  text_overlay: 'minimal' | 'moderate' | 'heavy';
   campaign_size: 1 | 3 | 5 | 10 | 15;
   image_formats: string[]; // Will be stored as JSON
   status?: 'pending' | 'generating' | 'completed' | 'failed';
