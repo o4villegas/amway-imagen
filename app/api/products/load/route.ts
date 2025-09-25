@@ -124,8 +124,11 @@ export async function POST(request: NextRequest) {
       console.log(`[SCRAPING] Stage 4: Caching result...`);
       await cache.cacheProduct(url, extractionResult);
 
-      // Get the stored product for consistent response format
-      const storedProduct = await db.getProduct(url);
+      // Get the stored product for consistent response format (normalize URL to match cache)
+      const normalizedUrl = new URL(url).href;
+      console.log(`[SCRAPING] Retrieving stored product - Original URL: ${url}`);
+      console.log(`[SCRAPING] Retrieving stored product - Normalized URL: ${normalizedUrl}`);
+      const storedProduct = await db.getProduct(normalizedUrl);
 
       if (!storedProduct) {
         throw new Error('Failed to retrieve stored product after caching');

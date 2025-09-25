@@ -21,9 +21,11 @@ export class ProductCacheManager {
    */
   async getCachedProduct(url: string): Promise<ProductExtractionResult | null> {
     try {
+      const normalizedUrl = this.normalizeUrl(url);
       console.log(`[CACHE] Checking cache for URL: ${url}`);
+      console.log(`[CACHE] Normalized URL: ${normalizedUrl}`);
 
-      const cached = await this.db.getCachedProduct(url);
+      const cached = await this.db.getCachedProduct(normalizedUrl);
 
       if (!cached) {
         console.log(`[CACHE] No cached data found for ${url}`);
@@ -41,13 +43,13 @@ export class ProductCacheManager {
       const cachedUntil = new Date(cached.cached_until);
 
       if (now > cachedUntil) {
-        console.log(`[CACHE] Cached data expired for ${url} (expired: ${cachedUntil})`);
+        console.log(`[CACHE] Cached data expired for ${normalizedUrl} (expired: ${cachedUntil})`);
         // Clean up expired cache entry
-        await this.db.deleteCachedProduct(url);
+        await this.db.deleteCachedProduct(normalizedUrl);
         return null;
       }
 
-      console.log(`[CACHE] Valid cached data found for ${url} (expires: ${cachedUntil})`);
+      console.log(`[CACHE] Valid cached data found for ${normalizedUrl} (expires: ${cachedUntil})`);
 
       // Convert stored product back to extraction result format
       return this.convertStoredToExtractionResult(cached);
@@ -59,18 +61,35 @@ export class ProductCacheManager {
   }
 
   /**
+   * Normalizes URLs to prevent encoding/decoding inconsistencies
+   */
+  private normalizeUrl(url: string): string {
+    try {
+      // Parse and reconstruct the URL to normalize encoding
+      const urlObj = new URL(url);
+      return urlObj.href;
+    } catch {
+      // If URL parsing fails, return as-is
+      return url;
+    }
+  }
+
+  /**
    * Caches a product extraction result for 24 hours
    */
   async cacheProduct(url: string, extractionResult: ProductExtractionResult): Promise<void> {
     try {
+      const normalizedUrl = this.normalizeUrl(url);
       const now = new Date();
       const expiresAt = new Date(now.getTime() + (this.CACHE_DURATION_HOURS * 60 * 60 * 1000));
 
       console.log(`[CACHE] Caching product ${extractionResult.name} until ${expiresAt}`);
+      console.log(`[CACHE] Original URL: ${url}`);
+      console.log(`[CACHE] Normalized URL: ${normalizedUrl}`);
 
       // Convert extraction result to scraped product format
       const scrapedProduct: ScrapedProduct = {
-        amway_product_id: this.generateProductId(url),
+        amway_product_id: this.generateProductId(normalizedUrl),
         name: extractionResult.name,
         description: extractionResult.description,
         benefits: extractionResult.benefits.join('. '),
@@ -83,9 +102,9 @@ export class ProductCacheManager {
       };
 
       // Save with caching metadata
-      await this.db.saveProductWithCache(url, scrapedProduct, expiresAt);
+      await this.db.saveProductWithCache(normalizedUrl, scrapedProduct, expiresAt);
 
-      console.log(`[CACHE] Successfully cached product for ${url}`);
+      console.log(`[CACHE] Successfully cached product for ${normalizedUrl}`);
 
     } catch (error) {
       console.error('[CACHE] Error caching product:', error);
@@ -182,8 +201,9 @@ export class ProductCacheManager {
    */
   async invalidateProduct(url: string): Promise<void> {
     try {
-      await this.db.deleteCachedProduct(url);
-      console.log(`[CACHE] Invalidated cache for ${url}`);
+      const normalizedUrl = this.normalizeUrl(url);
+      await this.db.deleteCachedProduct(normalizedUrl);
+      console.log(`[CACHE] Invalidated cache for ${normalizedUrl}`);
     } catch (error) {
       console.error('[CACHE] Error invalidating cache:', error);
     }
