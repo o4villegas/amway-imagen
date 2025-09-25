@@ -3,6 +3,7 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { DatabaseManager } from '@/lib/db';
 import { ClaudeProductScraper, ScrapingRateLimiter } from '@/lib/ai-scraper';
 import { ProductCacheManager } from '@/lib/cache-manager';
+import { EnhancedProductScraper } from '@/lib/enhanced-scraper';
 
 
 // This API route is dynamic and should not be statically generated
@@ -88,9 +89,34 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Stage 2: Scrape with Claude API
-      console.log(`[SCRAPING] Stage 2: Fetching and extracting with Claude API...`);
-      const extractionResult = await scraper.scrapeProduct(url);
+      // Stage 2: Try enhanced scraper first (uses Claude's knowledge base)
+      console.log(`[SCRAPING] Stage 2: Using enhanced extraction with Claude knowledge base...`);
+      let extractionResult;
+
+      try {
+        const enhancedScraper = new EnhancedProductScraper(CLAUDE_API_KEY);
+        const enhancedInfo = await enhancedScraper.extractProductInfo(url);
+
+        // Convert enhanced format to standard format
+        extractionResult = {
+          name: enhancedInfo.name,
+          description: enhancedInfo.description,
+          benefits: enhancedInfo.benefits,
+          category: enhancedInfo.category,
+          brand: enhancedInfo.brand,
+          price: enhancedInfo.price,
+          currency: enhancedInfo.currency,
+          imageUrl: enhancedInfo.imageUrl,
+          confidence: enhancedInfo.confidence
+        };
+
+        console.log(`[SCRAPING] Enhanced extraction successful: ${enhancedInfo.name} (confidence: ${enhancedInfo.confidence})`);
+      } catch (enhancedError) {
+        console.log(`[SCRAPING] Enhanced extraction failed, falling back to traditional scraping...`);
+
+        // Fallback to original scraper
+        extractionResult = await scraper.scrapeProduct(url);
+      }
 
       console.log(`[SCRAPING] Stage 3: Extraction complete - ${extractionResult.name} (${extractionResult.confidence} confidence)`);
 
