@@ -9,10 +9,9 @@ import { Download, Clock, FileArchive, RotateCcw, CheckCircle, Copy, ExternalLin
 interface DownloadManagerProps {
   result: GenerationResult;
   onNewCampaign: () => void;
-  onBackToPreview?: () => void;
 }
 
-export function DownloadManager({ result, onNewCampaign, onBackToPreview }: DownloadManagerProps) {
+export function DownloadManager({ result, onNewCampaign }: DownloadManagerProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
@@ -215,16 +214,6 @@ export function DownloadManager({ result, onNewCampaign, onBackToPreview }: Down
 
       {/* Action Buttons */}
       <div className="flex justify-center space-x-4">
-        {onBackToPreview && (
-          <Button
-            onClick={onBackToPreview}
-            variant="outline"
-            size="lg"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Preview
-          </Button>
-        )}
         <Button
           onClick={onNewCampaign}
           variant="outline"

@@ -65,8 +65,7 @@ export function ScrapingProgress({
   // Auto-trigger completion when stage 4 is reached
   React.useEffect(() => {
     if (currentStage >= 4 && !error && onComplete) {
-      const timer = setTimeout(onComplete, 1500);
-      return () => clearTimeout(timer);
+      onComplete();
     }
   }, [currentStage, error, onComplete]);
 

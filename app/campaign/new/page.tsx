@@ -14,7 +14,7 @@ import { ProgressIndicator } from '@/components/campaign/ProgressIndicator';
 import { StoredProduct } from '@/lib/db';
 import { ErrorBoundary, CampaignErrorFallback } from '@/components/ErrorBoundary';
 
-export type CampaignStep = 'url-input' | 'scraping' | 'configure' | 'generate' | 'preview' | 'download';
+export type CampaignStep = 'url-input' | 'processing' | 'generate' | 'download';
 
 export interface CampaignPreferences {
   campaign_type: 'lifestyle'; // Fixed to lifestyle with benefit-focused approach
@@ -42,14 +42,23 @@ export interface GenerationResult {
   totalImages: number;
 }
 
-const defaultPreferences: CampaignPreferences = {
-  campaign_type: 'lifestyle',
-  brand_style: 'professional',
-  color_scheme: 'amway_brand',
-  text_overlay: 'moderate',
-  campaign_size: 5,
-  image_formats: ['facebook_post', 'instagram_post', 'pinterest', 'snapchat_ad', 'linkedin_post']
+// Smart defaults based on product category
+const getSmartDefaults = (product?: StoredProduct): CampaignPreferences => {
+  const category = product?.category?.toLowerCase();
+
+  return {
+    campaign_type: 'lifestyle',
+    brand_style: category === 'nutrition' ? 'wellness' :
+                category === 'beauty' ? 'luxury' :
+                category === 'home' ? 'professional' : 'professional',
+    color_scheme: 'product_inspired', // More dynamic than static amway_brand
+    text_overlay: 'moderate',
+    campaign_size: 5,
+    image_formats: ['facebook_post', 'instagram_post', 'pinterest', 'snapchat_ad', 'linkedin_post']
+  };
 };
+
+const defaultPreferences: CampaignPreferences = getSmartDefaults();
 
 function NewCampaignContent() {
   const searchParams = useSearchParams();
@@ -73,14 +82,13 @@ function NewCampaignContent() {
 
   const handleUrlSubmit = async (url: string) => {
     setCurrentUrl(url);
-    setStep('scraping');
+    setStep('processing');
     setScrapingStage(1);
     setScrapingError('');
 
     try {
       // Stage 1: Start extraction
       setScrapingStage(1);
-      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Stage 2: Call API
       setScrapingStage(2);
@@ -103,11 +111,13 @@ function NewCampaignContent() {
 
       // Stage 3: Process results
       setScrapingStage(3);
-      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Stage 4: Complete
       setScrapingStage(4);
       setProductInfo(data.product);
+
+      // Apply smart defaults based on product category
+      setPreferences(getSmartDefaults(data.product));
 
     } catch (error) {
       setScrapingError(error instanceof Error ? error.message : 'An error occurred');
@@ -115,7 +125,8 @@ function NewCampaignContent() {
   };
 
   const handleScrapingComplete = () => {
-    setStep('configure');
+    // Skip configure step and go directly to generation with smart defaults
+    setStep('generate');
   };
 
   const handleScrapingRetry = () => {
@@ -130,15 +141,7 @@ function NewCampaignContent() {
 
   const handleGenerationComplete = (result: GenerationResult) => {
     setGenerationResult(result);
-    setStep('preview');
-  };
-
-  const handlePreviewComplete = () => {
     setStep('download');
-  };
-
-  const handleBackToPreview = () => {
-    setStep('preview');
   };
 
   const handleStartNewCampaign = () => {
@@ -189,37 +192,46 @@ function NewCampaignContent() {
             </div>
           )}
 
-          {step === 'scraping' && (
+          {step === 'processing' && (
             <div className="p-6">
-              <ScrapingProgress
-                currentStage={scrapingStage}
-                error={scrapingError}
-                onComplete={handleScrapingComplete}
-              />
-              {scrapingError && (
-                <div className="mt-6 flex gap-4 justify-center">
-                  <button
-                    onClick={handleScrapingRetry}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                  >
-                    Try Again
-                  </button>
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                    Processing & Setup
+                  </h2>
+                  <p className="text-gray-600">
+                    Extracting product information and preparing your campaign with smart defaults.
+                  </p>
                 </div>
-              )}
-            </div>
-          )}
 
-          {step === 'configure' && productInfo && (
-            <div className="p-6">
-              <ProductPreview product={productInfo} />
-              <div className="mt-8">
-                <ErrorBoundary fallback={CampaignErrorFallback}>
-                  <PreferencesPanel
-                    preferences={preferences}
-                    onChange={setPreferences}
-                    onComplete={handlePreferencesComplete}
-                  />
-                </ErrorBoundary>
+                <ScrapingProgress
+                  currentStage={scrapingStage}
+                  error={scrapingError}
+                  onComplete={handleScrapingComplete}
+                />
+
+                {productInfo && (
+                  <div className="mt-6">
+                    <ProductPreview product={productInfo} />
+                    <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="font-medium text-green-900 mb-2">Smart Campaign Setup Applied</div>
+                      <div className="text-sm text-green-700">
+                        Optimized for {productInfo.category} products with {preferences.brand_style} styling and {preferences.color_scheme} color scheme.
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {scrapingError && (
+                  <div className="mt-6 flex gap-4 justify-center">
+                    <button
+                      onClick={handleScrapingRetry}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -234,28 +246,10 @@ function NewCampaignContent() {
             </ErrorBoundary>
           )}
 
-          {step === 'preview' && generationResult && (
-            <div className="p-6">
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-2">Preview & Select Images</h2>
-                <p className="text-gray-600">
-                  Review your generated images and select which ones to include in your campaign download.
-                </p>
-              </div>
-              <ErrorBoundary fallback={CampaignErrorFallback}>
-                <ImageGallery
-                  campaignId={generationResult.campaignId}
-                  onComplete={handlePreviewComplete}
-                />
-              </ErrorBoundary>
-            </div>
-          )}
-
           {step === 'download' && generationResult && (
             <DownloadManager
               result={generationResult}
               onNewCampaign={handleStartNewCampaign}
-              onBackToPreview={handleBackToPreview}
             />
           )}
         </div>

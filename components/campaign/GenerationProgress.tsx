@@ -87,22 +87,16 @@ function GenerationProgressContent({ product, preferences, onComplete }: Generat
         setProgress(90);
         setGeneratedCount(result.totalImages);
 
-        // Brief delay to show packaging step
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
         setStatus('completed');
         setCurrentStep('Campaign ready!');
         setProgress(100);
 
-        // Brief delay before calling onComplete
-        setTimeout(() => {
-          onComplete({
-            campaignId: result.campaignId,
-            downloadUrl: result.downloadUrl,
-            expiresAt: result.expiresAt,
-            totalImages: result.totalImages
-          });
-        }, 500);
+        onComplete({
+          campaignId: result.campaignId,
+          downloadUrl: result.downloadUrl,
+          expiresAt: result.expiresAt,
+          totalImages: result.totalImages
+        });
 
       } else {
         throw new Error(result.error || 'Generation failed');
