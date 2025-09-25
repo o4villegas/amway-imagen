@@ -135,9 +135,17 @@ export class ProductCacheManager {
   private generateProductId(url: string): string {
     try {
       const urlObj = new URL(url);
-      const pathMatch = urlObj.pathname.match(/\/p\/([^\/]+)/);
+
+      // Try to extract product ID from various URL patterns
+      const pathMatch = urlObj.pathname.match(/[\-p](\d{6})/); // Match -p-XXXXXX or p-XXXXXX
       if (pathMatch) {
         return pathMatch[1];
+      }
+
+      // Look for standalone product numbers
+      const productMatch = url.match(/(\d{6})/);
+      if (productMatch) {
+        return productMatch[1];
       }
 
       // Fallback: generate from URL hash
