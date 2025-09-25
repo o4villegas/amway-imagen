@@ -143,7 +143,9 @@ export async function POST(request: NextRequest) {
             id: -1, // Temporary ID
             name: extractionResult.name,
             description: extractionResult.description,
-            benefits: Array.isArray(extractionResult.benefits) ? extractionResult.benefits : (extractionResult.benefits || '').split('. '),
+            benefits: Array.isArray(extractionResult.benefits)
+              ? extractionResult.benefits
+              : (typeof (extractionResult as any).benefits === 'string' ? (extractionResult as any).benefits.split('. ') : []),
             category: extractionResult.category,
             brand: extractionResult.brand,
             price: extractionResult.price,
