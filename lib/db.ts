@@ -167,15 +167,17 @@ export class DatabaseManager {
           campaign_type,
           brand_style,
           color_scheme,
+          text_overlay,
           campaign_size,
           image_formats,
           status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         campaign.product_id,
         campaign.campaign_type,
         campaign.brand_style,
         campaign.color_scheme,
+        campaign.text_overlay,
         campaign.campaign_size,
         JSON.stringify(campaign.image_formats),
         'pending'

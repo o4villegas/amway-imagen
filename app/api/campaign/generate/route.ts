@@ -143,6 +143,7 @@ export async function POST(request: NextRequest) {
         campaign_type: normalizedPreferences.campaign_type,
         brand_style: normalizedPreferences.brand_style,
         color_scheme: normalizedPreferences.color_scheme,
+        text_overlay: normalizedPreferences.text_overlay,
         campaign_size: normalizedPreferences.campaign_size,
         image_formats: normalizedPreferences.image_formats,
         status: 'generating'
