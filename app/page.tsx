@@ -1,148 +1,136 @@
-import Link from 'next/link';
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Zap, Target, Palette, Download, ArrowRight } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Search, Sparkles, AlertCircle } from 'lucide-react';
 
 export default function Home() {
+  const [url, setUrl] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const router = useRouter();
+
+  const validateAmwayUrl = (url: string): boolean => {
+    try {
+      const parsedUrl = new URL(url);
+      const validHostnames = ['www.amway.com', 'amway.com'];
+
+      if (!validHostnames.includes(parsedUrl.hostname)) {
+        return false;
+      }
+
+      const pathname = parsedUrl.pathname;
+      return pathname.includes('-p-') ||
+             pathname.includes('/p/') ||
+             pathname.includes('/product/');
+    } catch {
+      return false;
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!url.trim()) {
+      setError('Please enter a product URL');
+      return;
+    }
+
+    if (!validateAmwayUrl(url)) {
+      setError('Please enter a valid Amway product URL');
+      return;
+    }
+
+    setError('');
+    setIsLoading(true);
+
+    try {
+      // Navigate to campaign creation with the URL
+      const encodedUrl = encodeURIComponent(url);
+      router.push(`/campaign/new?url=${encodedUrl}`);
+    } catch (error) {
+      setError('Something went wrong. Please try again.');
+      setIsLoading(false);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUrl(e.target.value);
+    if (error) setError(''); // Clear error when user starts typing
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
-      <div className="container mx-auto px-4 py-16">
-        {/* Hero Section */}
-        <div className="text-center space-y-6 mb-16">
-          <h1 className="text-4xl md:text-6xl font-bold text-gray-900">
-            Amway IBO
-            <span className="text-blue-600"> Image Campaign</span>
-            <br />Generator
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white px-4">
+      {/* Logo/Brand Area */}
+      <div className="w-full max-w-2xl text-center mb-12">
+        <div className="flex items-center justify-center mb-6">
+          <Sparkles className="h-12 w-12 text-blue-600 mr-3" />
+          <h1 className="text-4xl font-normal text-gray-900">
+            Amway IBO Image Generator
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Transform any Amway product URL into professional marketing images.
-            Generate cohesive campaigns with AI-powered visuals, automatic compliance,
-            and multiple social media formats.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="text-lg px-8 py-3">
-              <Link href="/campaign/new">
-                <Zap className="h-5 w-5 mr-2" />
-                Create Campaign
-              </Link>
-            </Button>
-            <Button variant="outline" size="lg" className="text-lg px-8 py-3">
-              View Examples
-            </Button>
+        </div>
+
+        {/* Tagline */}
+        <p className="text-xl text-gray-600 font-light mb-8">
+          Transform Amway products into campaigns
+        </p>
+
+        {/* Main Search Interface */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="relative">
+            <Input
+              type="url"
+              placeholder="Enter Amway product URL..."
+              value={url}
+              onChange={handleInputChange}
+              className={`w-full h-14 text-lg px-6 pr-12 rounded-full border-2 shadow-sm focus:shadow-md transition-shadow ${
+                error ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-blue-500'
+              }`}
+              disabled={isLoading}
+            />
+            <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
           </div>
-        </div>
 
-        {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          <Card className="text-center">
-            <CardHeader>
-              <Target className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-              <CardTitle className="text-lg">Smart Product Scraping</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 text-sm">
-                Automatically extract product info, benefits, and images from any Amway URL
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="text-center">
-            <CardHeader>
-              <Palette className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-              <CardTitle className="text-lg">AI-Powered Design</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 text-sm">
-                Generate unique, professional images with customizable styles and formats
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="text-center">
-            <CardHeader>
-              <Zap className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-              <CardTitle className="text-lg">Multiple Formats</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 text-sm">
-                Instagram posts/stories, Facebook covers, Pinterest pins - all optimized
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="text-center">
-            <CardHeader>
-              <Download className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-              <CardTitle className="text-lg">Easy Download</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 text-sm">
-                Get organized ZIP packages with usage guidelines and compliance text
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* How It Works */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-16">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-8">
-            How It Works
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                1
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Paste Product URL</h3>
-              <p className="text-gray-600 text-sm">
-                Enter any Amway product page URL and we&apos;ll extract all the details
-              </p>
+          {/* Error Message */}
+          {error && (
+            <div className="flex items-center justify-center text-red-600 text-sm">
+              <AlertCircle className="h-4 w-4 mr-1" />
+              {error}
             </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                2
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Configure Style</h3>
-              <p className="text-gray-600 text-sm">
-                Choose your campaign type, brand style, and image formats
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                3
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">AI Generation</h3>
-              <p className="text-gray-600 text-sm">
-                Watch as AI creates professional images with compliance included
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                4
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Download & Use</h3>
-              <p className="text-gray-600 text-sm">
-                Get your organized campaign package ready for social media
-              </p>
-            </div>
-          </div>
-        </div>
+          )}
 
-        {/* CTA Section */}
-        <div className="text-center bg-blue-600 text-white rounded-2xl p-8">
-          <h2 className="text-3xl font-bold mb-4">
-            Ready to Transform Your Marketing?
-          </h2>
-          <p className="text-xl text-blue-100 mb-6">
-            Create professional image campaigns in minutes, not hours.
-          </p>
-          <Button asChild size="lg" variant="secondary" className="text-lg px-8 py-3">
-            <Link href="/campaign/new">
-              Get Started Now
-              <ArrowRight className="h-5 w-5 ml-2" />
-            </Link>
+          {/* Generate Button */}
+          <Button
+            type="submit"
+            size="lg"
+            className="h-12 px-8 text-lg rounded-full"
+            disabled={isLoading || !url.trim()}
+          >
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Processing...
+              </>
+            ) : (
+              'Generate Campaign'
+            )}
           </Button>
+        </form>
+
+        {/* Example URL Helper */}
+        <div className="mt-8 text-sm text-gray-500">
+          <p className="mb-2">Example URL format:</p>
+          <code className="bg-gray-100 px-3 py-1 rounded text-xs">
+            https://www.amway.com/en_US/Product-Name-p-123456
+          </code>
         </div>
+      </div>
+
+      {/* Minimal Footer */}
+      <div className="absolute bottom-8 text-center text-xs text-gray-400">
+        <p>AI-powered product extraction and image generation</p>
       </div>
     </div>
   );

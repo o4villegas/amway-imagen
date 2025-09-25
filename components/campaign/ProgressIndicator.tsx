@@ -15,11 +15,12 @@ interface StepConfig {
 }
 
 const STEPS: StepConfig[] = [
-  { id: 'select', number: 1, label: 'Select Product', shortLabel: 'Select' },
-  { id: 'configure', number: 2, label: 'Configure', shortLabel: 'Config' },
-  { id: 'generate', number: 3, label: 'Generate', shortLabel: 'Generate' },
-  { id: 'preview', number: 4, label: 'Preview', shortLabel: 'Preview' },
-  { id: 'download', number: 5, label: 'Download', shortLabel: 'Download' }
+  { id: 'url-input', number: 1, label: 'Enter URL', shortLabel: 'URL' },
+  { id: 'scraping', number: 2, label: 'Extract Product', shortLabel: 'Extract' },
+  { id: 'configure', number: 3, label: 'Configure', shortLabel: 'Config' },
+  { id: 'generate', number: 4, label: 'Generate', shortLabel: 'Generate' },
+  { id: 'preview', number: 5, label: 'Preview', shortLabel: 'Preview' },
+  { id: 'download', number: 6, label: 'Download', shortLabel: 'Download' }
 ];
 
 export function ProgressIndicator({ currentStep }: ProgressIndicatorProps) {

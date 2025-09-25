@@ -1,14 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { DatabaseManager } from '@/lib/db';
-import { ProductLoader } from '@/lib/product-loader';
+import { ClaudeProductScraper, ScrapingRateLimiter } from '@/lib/ai-scraper';
+import { ProductCacheManager } from '@/lib/cache-manager';
 
+
+// This API route is dynamic and should not be statically generated
+export const dynamic = 'force-dynamic';
+
+// Rate limiter instance (in production, this should be stored in a persistent cache)
+const rateLimiter = new ScrapingRateLimiter();
 
 export async function POST(request: NextRequest) {
   try {
-    // @ts-ignore - Cloudflare Workers bindings
-    const DB = process.env.DB as D1Database | undefined;
-    // @ts-ignore - Cloudflare Workers bindings
-    const CAMPAIGN_STORAGE = process.env.CAMPAIGN_STORAGE as R2Bucket | undefined;
+    const { env } = getCloudflareContext();
+    const DB = env.DB as D1Database | undefined;
+    const CLAUDE_API_KEY = env.CLAUDE_API_KEY as string | undefined;
+
+    // Check for required API key
+    if (!CLAUDE_API_KEY) {
+      return NextResponse.json({
+        error: 'Claude API key not configured',
+        message: 'Please configure CLAUDE_API_KEY environment variable'
+      }, { status: 500 });
+    }
 
     // Mock database in development
     const mockDb = {
@@ -17,82 +32,128 @@ export async function POST(request: NextRequest) {
           first: async () => null,
           run: async () => ({
             success: true,
-            meta: { last_row_id: Math.floor(Math.random() * 1000000) }
-          })
+            meta: { last_row_id: Math.floor(Math.random() * 1000000), changes: 1 }
+          }),
+          all: async () => ({ results: [] })
         })
       })
     };
 
     const db = new DatabaseManager(DB || mockDb as any);
-    const loader = new ProductLoader(db, CAMPAIGN_STORAGE || null as any);
+    const scraper = new ClaudeProductScraper(CLAUDE_API_KEY);
+    const cache = new ProductCacheManager(db);
 
-    const requestData = await request.json() as { products?: any[] };
-    const { products } = requestData;
+    const requestData = await request.json() as { url: string; userId?: string };
+    const { url, userId = 'anonymous' } = requestData;
 
-    if (!products || !Array.isArray(products)) {
+    if (!url || typeof url !== 'string') {
       return NextResponse.json({
-        error: 'Invalid request format. Expected products array.'
+        error: 'Invalid request format. Expected URL string.'
       }, { status: 400 });
     }
 
-    const results = [];
-
-    for (const productData of products) {
-      const { textContent, filename, imageBase64 } = productData;
-
-      if (!textContent || !filename) {
-        continue; // Skip invalid entries
-      }
-
-      // Convert base64 image to buffer if provided
-      let imageBuffer: ArrayBuffer | undefined;
-      if (imageBase64) {
-        const base64Data = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
-        const binaryString = atob(base64Data);
-        imageBuffer = new ArrayBuffer(binaryString.length);
-        const uint8Array = new Uint8Array(imageBuffer);
-        for (let i = 0; i < binaryString.length; i++) {
-          uint8Array[i] = binaryString.charCodeAt(i);
-        }
-      }
-
-      try {
-        const stored = await loader.loadProduct(textContent, filename, imageBuffer);
-        results.push({
-          success: true,
-          product: {
-            id: stored.id,
-            name: stored.name,
-            category: stored.category,
-            brand: stored.brand
-          }
-        });
-      } catch (error) {
-        results.push({
-          success: false,
-          filename,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
+    // Rate limiting check
+    if (!rateLimiter.checkRateLimit(userId)) {
+      return NextResponse.json({
+        error: 'Rate limit exceeded',
+        message: 'Too many scraping requests. Please wait before trying again.',
+        remaining: rateLimiter.getRemainingRequests(userId)
+      }, { status: 429 });
     }
 
-    const successful = results.filter(r => r.success).length;
-    const failed = results.filter(r => !r.success).length;
+    console.log(`[SCRAPING] Starting extraction for URL: ${url}`);
 
-    return NextResponse.json({
-      message: `Loaded ${successful} products successfully${failed > 0 ? `, ${failed} failed` : ''}`,
-      results,
-      summary: {
-        total: products.length,
-        successful,
-        failed
+    try {
+      // Stage 1: Check cache first
+      console.log(`[SCRAPING] Stage 1: Checking cache...`);
+      const cachedProduct = await db.getCachedProduct(url);
+
+      if (cachedProduct) {
+        console.log(`[SCRAPING] Cache hit! Returning cached product: ${cachedProduct.name}`);
+        return NextResponse.json({
+          success: true,
+          fromCache: true,
+          product: {
+            id: cachedProduct.id,
+            name: cachedProduct.name,
+            description: cachedProduct.description,
+            benefits: cachedProduct.benefits ? cachedProduct.benefits.split('. ').filter(b => b.trim()) : [],
+            category: cachedProduct.category,
+            brand: cachedProduct.brand,
+            price: cachedProduct.price,
+            currency: cachedProduct.currency,
+            main_image_url: cachedProduct.main_image_url,
+            product_url: cachedProduct.product_url
+          }
+        });
       }
-    });
+
+      // Stage 2: Scrape with Claude API
+      console.log(`[SCRAPING] Stage 2: Fetching and extracting with Claude API...`);
+      const extractionResult = await scraper.scrapeProduct(url);
+
+      console.log(`[SCRAPING] Stage 3: Extraction complete - ${extractionResult.name} (${extractionResult.confidence} confidence)`);
+
+      // Stage 4: Cache the result
+      console.log(`[SCRAPING] Stage 4: Caching result...`);
+      await cache.cacheProduct(url, extractionResult);
+
+      // Get the stored product for consistent response format
+      const storedProduct = await db.getProduct(url);
+
+      if (!storedProduct) {
+        throw new Error('Failed to retrieve stored product after caching');
+      }
+
+      console.log(`[SCRAPING] Successfully completed extraction for: ${extractionResult.name}`);
+
+      return NextResponse.json({
+        success: true,
+        fromCache: false,
+        product: {
+          id: storedProduct.id,
+          name: storedProduct.name,
+          description: storedProduct.description,
+          benefits: storedProduct.benefits,
+          category: storedProduct.category,
+          brand: storedProduct.brand,
+          price: storedProduct.price,
+          currency: storedProduct.currency,
+          main_image_url: storedProduct.main_image_url,
+          product_url: storedProduct.product_url
+        },
+        extraction: {
+          confidence: extractionResult.confidence,
+          cached_until: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        }
+      });
+
+    } catch (error) {
+      console.error('[SCRAPING] Extraction failed:', error);
+
+      if (error && typeof error === 'object' && 'type' in error) {
+        // This is a ScrapingError
+        const scrapingError = error as any;
+        return NextResponse.json({
+          success: false,
+          error: scrapingError.type,
+          message: scrapingError.message,
+          retryable: scrapingError.retryable
+        }, { status: scrapingError.type === 'rate_limited' ? 429 : 400 });
+      }
+
+      // Generic error
+      return NextResponse.json({
+        success: false,
+        error: 'extraction_failed',
+        message: error instanceof Error ? error.message : 'Unknown extraction error'
+      }, { status: 500 });
+    }
 
   } catch (error) {
-    console.error('Product loading error:', error);
+    console.error('Product scraping error:', error);
     return NextResponse.json({
-      error: 'Failed to load products',
+      error: 'Failed to process scraping request',
       message: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
@@ -100,8 +161,8 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    // @ts-ignore - Cloudflare Workers bindings
-    const DB = process.env.DB as D1Database | undefined;
+    const { env } = getCloudflareContext();
+    const DB = env.DB as D1Database | undefined;
 
     // In test/development environment, return mock products
     // Simplify: If there's no real DB binding, use mock data

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-// Cloudflare Workers context will be available via process.env
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { DatabaseManager } from '@/lib/db';
 import { PromptGenerator } from '@/lib/prompt-generator';
 import { ZipCreator, CampaignFile, CampaignMetadata } from '@/lib/zip-creator';
@@ -10,6 +10,9 @@ import { withTimeout, TIMEOUTS, TimeoutError } from '@/lib/timeout-utils';
 import { CAMPAIGN_CONFIG } from '@/lib/config';
 import { isDevelopment, isTest, logError } from '@/lib/env-utils';
 
+
+// This API route is dynamic and should not be statically generated
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -31,15 +34,17 @@ export async function POST(request: NextRequest) {
     }
     // Get context and verify bindings
     let isTestEnvironment = false;
-
-    // @ts-ignore - Cloudflare Workers bindings
-    const AI = process.env.AI as Ai | undefined;
-    // @ts-ignore - Cloudflare Workers bindings
-    const CAMPAIGN_STORAGE = process.env.CAMPAIGN_STORAGE as R2Bucket | undefined;
-    // @ts-ignore - Cloudflare Workers bindings
-    const DB = process.env.DB as D1Database | undefined;
+    let AI: Ai | undefined;
+    let CAMPAIGN_STORAGE: R2Bucket | undefined;
+    let DB: D1Database | undefined;
 
     try {
+      // Get Cloudflare context for bindings access
+      const { env } = getCloudflareContext();
+      AI = env.AI as Ai | undefined;
+      CAMPAIGN_STORAGE = env.CAMPAIGN_STORAGE as R2Bucket | undefined;
+      DB = env.DB as D1Database | undefined;
+
       // Check if bindings are available
       if (!AI || !CAMPAIGN_STORAGE || !DB) {
         isTestEnvironment = true;
@@ -137,7 +142,6 @@ export async function POST(request: NextRequest) {
         campaign_type: normalizedPreferences.campaign_type,
         brand_style: normalizedPreferences.brand_style,
         color_scheme: normalizedPreferences.color_scheme,
-        text_overlay: normalizedPreferences.text_overlay,
         campaign_size: normalizedPreferences.campaign_size,
         image_formats: normalizedPreferences.image_formats,
         status: 'generating'
@@ -159,10 +163,11 @@ export async function POST(request: NextRequest) {
             const aiInput = {
               prompt: String(prompt.text),
               // FLUX-1-schnell specific parameters
-              num_inference_steps: 4, // Fast generation
-              guidance_scale: 0.0, // FLUX-1-schnell works better with lower guidance
+              num_inference_steps: CAMPAIGN_CONFIG.AI_GENERATION_STEPS,
+              guidance_scale: CAMPAIGN_CONFIG.AI_GUIDANCE_SCALE,
               width: Number(prompt.width),
-              height: Number(prompt.height)
+              height: Number(prompt.height),
+              seed: Math.floor(Math.random() * 1000000) // Random seed for variety
             };
 
             // Log image generation attempt
@@ -175,17 +180,11 @@ export async function POST(request: NextRequest) {
 
             // Enhanced AI generation with retry logic
             let response: { image?: string } | undefined;
-            if (isDevelopment()) {
-              console.warn('[DEV_MODE] Skipping AI generation - using mock response');
-              // Create a small 1x1 PNG in base64 for testing
-              const mockImage = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAGA=';
-              response = { image: mockImage };
-            } else {
-              // Retry logic for AI generation failures
-              let lastError: any;
-              for (let attempt = 1; attempt <= 3; attempt++) {
+            // Retry logic for AI generation failures
+            let lastError: any;
+            for (let attempt = 1; attempt <= 5; attempt++) {
                 try {
-                  console.log(`[AI_GENERATION] Attempt ${attempt}/3 for ${prompt.format}`);
+                  console.log(`[AI_GENERATION] Attempt ${attempt}/5 for ${prompt.format}`);
                   response = await withTimeout(
                     AI.run('@cf/black-forest-labs/flux-1-schnell', aiInput),
                     TIMEOUTS.AI_GENERATION,
@@ -205,15 +204,14 @@ export async function POST(request: NextRequest) {
                   });
 
                   // If it's the last attempt, throw the error
-                  if (attempt === 3) {
+                  if (attempt === 5) {
                     throw lastError;
                   }
 
                   // Wait before retry (exponential backoff)
-                  await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+                  await new Promise(resolve => setTimeout(resolve, attempt * 2000));
                 }
               }
-            }
 
             if (!response || !response.image) {
               throw new Error('AI did not return image data');
@@ -232,26 +230,22 @@ export async function POST(request: NextRequest) {
             const r2Path = `campaigns/${campaignId!}/images/${filename}`;
 
             // Store image individually in R2 for preview
-            if (!isDevelopment()) {
-              await withTimeout(
-                CAMPAIGN_STORAGE!.put(r2Path, imageBuffer, {
-                httpMetadata: {
-                  contentType: 'image/jpeg',
-                  cacheControl: 'public, max-age=3600' // Cache for 1 hour
-                },
-                customMetadata: {
-                  campaignId: campaignId!.toString(),
-                  format: prompt.format,
-                  width: prompt.width.toString(),
-                  height: prompt.height.toString()
-                }
-              }),
-                TIMEOUTS.R2_UPLOAD,
-                'R2 image upload'
-              );
-            } else {
-              console.warn('[DEV_MODE] Skipping R2 upload in development');
-            }
+            await withTimeout(
+              CAMPAIGN_STORAGE!.put(r2Path, imageBuffer, {
+              httpMetadata: {
+                contentType: 'image/jpeg',
+                cacheControl: 'public, max-age=3600' // Cache for 1 hour
+              },
+              customMetadata: {
+                campaignId: campaignId!.toString(),
+                format: prompt.format,
+                width: prompt.width.toString(),
+                height: prompt.height.toString()
+              }
+            }),
+              TIMEOUTS.R2_UPLOAD,
+              'R2 image upload'
+            );
 
             // Save to database with R2 path
             await withTimeout(
@@ -344,25 +338,21 @@ export async function POST(request: NextRequest) {
 
       // Upload to R2
       const campaignKey = `campaigns/${campaignId!}_${Date.now()}.zip`;
-      if (!isDevelopment()) {
-        await withTimeout(
-          CAMPAIGN_STORAGE!.put(campaignKey, zipBuffer, {
-          httpMetadata: {
-            contentType: 'application/zip'
-          },
-          customMetadata: {
-            campaignId: campaignId!.toString(),
-            productId: productId.toString(),
-            totalImages: generatedImages.length.toString(),
-            createdAt: Date.now().toString()
-          }
-        }),
-          TIMEOUTS.R2_UPLOAD,
-          'ZIP upload to R2'
-        );
-      } else {
-        console.warn('[DEV_MODE] Skipping ZIP upload to R2 in development');
-      }
+      await withTimeout(
+        CAMPAIGN_STORAGE!.put(campaignKey, zipBuffer, {
+        httpMetadata: {
+          contentType: 'application/zip'
+        },
+        customMetadata: {
+          campaignId: campaignId!.toString(),
+          productId: productId.toString(),
+          totalImages: generatedImages.length.toString(),
+          createdAt: Date.now().toString()
+        }
+      }),
+        TIMEOUTS.R2_UPLOAD,
+        'ZIP upload to R2'
+      );
 
       // Generate download URL (expires based on config)
       const expiresAt = new Date(

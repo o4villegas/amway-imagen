@@ -37,9 +37,8 @@ export const campaignPreferencesSchema = z.object({
   campaign_type: z.literal('lifestyle'), // Fixed to lifestyle with benefit-focused approach
   brand_style: z.enum(['professional', 'casual', 'wellness', 'luxury']),
   color_scheme: z.enum(['amway_brand', 'product_inspired', 'custom']),
-  text_overlay: z.enum(['minimal', 'moderate', 'heavy']),
   campaign_size: z.literal(5),
-  image_formats: z.array(z.enum(['instagram_post', 'instagram_story', 'facebook_cover', 'pinterest']))
+  image_formats: z.array(z.enum(['facebook_post', 'instagram_post', 'pinterest', 'snapchat_ad', 'linkedin_post']))
     .min(1, 'At least one image format is required')
     .max(4, 'Maximum 4 image formats allowed')
 });
@@ -49,10 +48,9 @@ export const campaignPreferencesSchemaLegacy = z.object({
   campaign_type: z.enum(['product_focus', 'lifestyle']).transform(val => 'lifestyle' as const), // Normalize to lifestyle
   brand_style: z.enum(['professional', 'casual', 'wellness', 'luxury']),
   color_scheme: z.enum(['amway_brand', 'product_inspired', 'custom']),
-  text_overlay: z.enum(['minimal', 'moderate', 'heavy']),
   campaign_size: z.union([z.literal(1), z.literal(3), z.literal(5), z.literal(10), z.literal(15)])
     .transform(val => 5 as const), // Always normalize to 5 images
-  image_formats: z.array(z.enum(['instagram_post', 'instagram_story', 'facebook_cover', 'pinterest']))
+  image_formats: z.array(z.enum(['facebook_post', 'instagram_post', 'pinterest', 'snapchat_ad', 'linkedin_post']))
     .min(1, 'At least one image format is required')
     .max(4, 'Maximum 4 image formats allowed')
 });
@@ -88,10 +86,21 @@ export const idSchema = z.object({
 // Sanitize string input (prevent XSS)
 export const sanitizeString = (input: string): string => {
   return input
-    .replace(/[<>\"']/g, '') // Remove potential HTML/JS injection chars
+    .replace(/[<>\"'&]/g, (match) => {
+      // HTML entity encoding
+      switch (match) {
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '"': return '&quot;';
+        case "'": return '&#39;';
+        case '&': return '&amp;';
+        default: return match;
+      }
+    })
     .replace(/javascript:/gi, '') // Remove javascript: protocol
     .replace(/on\w+\s*=/gi, '') // Remove event handlers like onclick=
     .replace(/\x00/g, '') // Remove null bytes
+    .replace(/script/gi, '') // Remove script tags
     .trim()
     .substring(0, 1000); // Limit length
 };

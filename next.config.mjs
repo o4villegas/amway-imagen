@@ -1,4 +1,7 @@
-// Cloudflare Workers development setup will be handled by @opennextjs/cloudflare
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+
+// Initialize Cloudflare development environment
+initOpenNextCloudflareForDev();
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

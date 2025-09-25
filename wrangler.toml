@@ -1,7 +1,7 @@
 #:schema node_modules/wrangler/config-schema.json
 name = "imagenie-by-amway"
 main = ".open-next/worker.js"
-compatibility_date = "2024-09-25"
+compatibility_date = "2025-03-25"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 
 # Explicitly configure as Workers (not Pages)
@@ -38,5 +38,11 @@ enabled = true
 CLOUDFLARE_ACCOUNT_ID = "dc56444c4c955a1653106ccf997c1067"
 CAMPAIGN_EXPIRY_HOURS = "24"
 MAX_IMAGES_PER_CAMPAIGN = "15"
+# Scraping configuration
+SCRAPING_CACHE_HOURS = "24"
+SCRAPING_RATE_LIMIT = "10"
 # Environment for logging
 NODE_ENV = "production"
+
+# Secrets (set with: wrangler secret put CLAUDE_API_KEY)
+# CLAUDE_API_KEY = "sk-ant-..."  # Set via wrangler secret put

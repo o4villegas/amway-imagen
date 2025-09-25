@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-// Cloudflare Workers context will be available via process.env
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { DatabaseManager } from '@/lib/db';
 import { safeLog } from '@/lib/validation';
 
 
 // Common Amway products for seeding when scraping is unavailable
+// This API route is dynamic and should not be statically generated
+export const dynamic = 'force-dynamic';
+
 const SEED_PRODUCTS = [
   {
     amway_product_id: '119398',
@@ -74,8 +77,8 @@ const SEED_PRODUCTS = [
 
 export async function POST(request: NextRequest) {
   try {
-    // @ts-ignore - Cloudflare Workers bindings
-    const DB = process.env.DB as D1Database | undefined;
+    const { env } = getCloudflareContext();
+    const DB = env.DB as D1Database | undefined;
 
     if (!DB) {
       return NextResponse.json(

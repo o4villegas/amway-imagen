@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-// Cloudflare Workers context will be available via process.env
-
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+// This API route is dynamic and should not be statically generated
+export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { key: string[] } }
 ) {
   try {
-    // @ts-ignore - Cloudflare Workers bindings
-    const CAMPAIGN_STORAGE = process.env.CAMPAIGN_STORAGE as R2Bucket | undefined;
+    const { env } = getCloudflareContext();
+    const CAMPAIGN_STORAGE = env.CAMPAIGN_STORAGE as R2Bucket | undefined;
 
     if (!CAMPAIGN_STORAGE) {
       return NextResponse.json(

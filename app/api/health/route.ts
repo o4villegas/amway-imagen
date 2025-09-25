@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-// Cloudflare Workers context will be available via process.env
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { checkDatabaseHealth } from '@/lib/db-utils';
 import { getEnvVar } from '@/lib/env-utils';
+
+// This API route is dynamic and should not be statically generated
+export const dynamic = 'force-dynamic';
 
 
 interface HealthStatus {
@@ -20,9 +23,6 @@ interface HealthStatus {
 const startTime = Date.now();
 
 export async function GET(request: NextRequest) {
-  // Cloudflare Workers bindings available via process.env
-  // Workers bindings will be available directly
-
   const healthStatus: HealthStatus = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -36,40 +36,45 @@ export async function GET(request: NextRequest) {
     uptime: Date.now() - startTime
   };
 
-  // Check database health
-  // @ts-ignore - Cloudflare Workers bindings
-  const DB = process.env.DB as D1Database | undefined;
-  if (DB) {
-    try {
-      healthStatus.services.database = await checkDatabaseHealth(DB);
-    } catch (error) {
-      healthStatus.services.database = false;
-    }
-  }
+  try {
+    // Get Cloudflare context for bindings access
+    const { env } = getCloudflareContext();
 
-  // Check R2 storage health
-  // @ts-ignore - Cloudflare Workers bindings
-  const CAMPAIGN_STORAGE = process.env.CAMPAIGN_STORAGE as R2Bucket | undefined;
-  if (CAMPAIGN_STORAGE) {
-    try {
-      // Try to list with limit 1 to check if R2 is accessible
-      await CAMPAIGN_STORAGE.list({ limit: 1 });
-      healthStatus.services.storage = true;
-    } catch (error) {
-      healthStatus.services.storage = false;
+    // Check database health
+    const DB = env.DB as D1Database | undefined;
+    if (DB) {
+      try {
+        healthStatus.services.database = await checkDatabaseHealth(DB);
+      } catch (error) {
+        healthStatus.services.database = false;
+      }
     }
-  }
 
-  // Check AI service health
-  // @ts-ignore - Cloudflare Workers bindings
-  const AI = process.env.AI as Ai | undefined;
-  if (AI) {
-    try {
-      // We can't easily test AI without using credits, so just check if binding exists
-      healthStatus.services.ai = true;
-    } catch (error) {
-      healthStatus.services.ai = false;
+    // Check R2 storage health
+    const CAMPAIGN_STORAGE = env.CAMPAIGN_STORAGE as R2Bucket | undefined;
+    if (CAMPAIGN_STORAGE) {
+      try {
+        // Try to list with limit 1 to check if R2 is accessible
+        await CAMPAIGN_STORAGE.list({ limit: 1 });
+        healthStatus.services.storage = true;
+      } catch (error) {
+        healthStatus.services.storage = false;
+      }
     }
+
+    // Check AI service health
+    const AI = env.AI as Ai | undefined;
+    if (AI) {
+      try {
+        // We can't easily test AI without using credits, so just check if binding exists
+        healthStatus.services.ai = true;
+      } catch (error) {
+        healthStatus.services.ai = false;
+      }
+    }
+  } catch (error) {
+    // If getCloudflareContext fails, all services are unavailable
+    console.error('Failed to get Cloudflare context:', error);
   }
 
   // Determine overall health status

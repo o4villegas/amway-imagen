@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 
 
+// This API route is dynamic and should not be statically generated
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   // Create a simple SVG placeholder
   const svg = `

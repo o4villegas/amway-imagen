@@ -19,6 +19,7 @@ export interface StoredProduct extends ScrapedProduct {
   product_url: string;
   scraped_at: string;
   updated_at: string;
+  cached_until?: string;
 }
 
 export interface Campaign {
@@ -27,7 +28,6 @@ export interface Campaign {
   campaign_type: 'product_focus' | 'lifestyle';
   brand_style: 'professional' | 'casual' | 'wellness' | 'luxury';
   color_scheme: 'amway_brand' | 'product_inspired' | 'custom';
-  text_overlay: 'minimal' | 'moderate' | 'heavy';
   campaign_size: 1 | 3 | 5 | 10 | 15;
   image_formats: string[]; // Will be stored as JSON
   status?: 'pending' | 'generating' | 'completed' | 'failed';
@@ -40,7 +40,7 @@ export interface Campaign {
 export interface GeneratedImage {
   id?: number;
   campaign_id: number;
-  format: 'instagram_post' | 'instagram_story' | 'facebook_cover' | 'pinterest';
+  format: 'facebook_post' | 'instagram_post' | 'pinterest' | 'snapchat_ad' | 'linkedin_post';
   prompt: string;
   file_path?: string;
   r2_path?: string;
@@ -166,17 +166,15 @@ export class DatabaseManager {
           campaign_type,
           brand_style,
           color_scheme,
-          text_overlay,
           campaign_size,
           image_formats,
           status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
       `).bind(
         campaign.product_id,
         campaign.campaign_type,
         campaign.brand_style,
         campaign.color_scheme,
-        campaign.text_overlay,
         campaign.campaign_size,
         JSON.stringify(campaign.image_formats),
         'pending'
@@ -383,6 +381,156 @@ export class DatabaseManager {
     } catch (error) {
       console.error('Error getting all products:', error);
       return [];
+    }
+  }
+
+  // Caching methods for Claude API scraping
+
+  async getCachedProduct(url: string): Promise<StoredProduct | null> {
+    try {
+      const result = await this.db.prepare(
+        'SELECT * FROM products WHERE product_url = ? AND cached_until > datetime("now")'
+      ).bind(url).first();
+
+      return result as StoredProduct | null;
+    } catch (error) {
+      console.error('Error getting cached product:', error);
+      return null;
+    }
+  }
+
+  async saveProductWithCache(url: string, productData: ScrapedProduct, expiresAt: Date): Promise<StoredProduct> {
+    try {
+      // Check if product exists
+      const existing = await this.getProduct(url);
+
+      if (existing) {
+        // Update existing product with new cache expiry
+        await this.db.prepare(`
+          UPDATE products SET
+            name = ?,
+            description = ?,
+            benefits = ?,
+            category = ?,
+            brand = ?,
+            price = ?,
+            currency = ?,
+            main_image_url = ?,
+            inventory_status = ?,
+            available = ?,
+            scraping_method = 'claude-api',
+            cached_until = ?,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE product_url = ?
+        `).bind(
+          productData.name,
+          productData.description,
+          productData.benefits,
+          productData.category,
+          productData.brand,
+          productData.price,
+          productData.currency,
+          productData.main_image_url,
+          productData.inventory_status,
+          (productData as any).available !== undefined ? (productData as any).available : true,
+          expiresAt.toISOString(),
+          url
+        ).run();
+
+        return await this.getProduct(url) as StoredProduct;
+      } else {
+        // Insert new product with cache expiry
+        const result = await this.db.prepare(`
+          INSERT INTO products (
+            product_url,
+            amway_product_id,
+            name,
+            description,
+            benefits,
+            category,
+            brand,
+            price,
+            currency,
+            main_image_url,
+            inventory_status,
+            available,
+            scraping_method,
+            cached_until
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'claude-api', ?)
+        `).bind(
+          url,
+          productData.amway_product_id,
+          productData.name,
+          productData.description,
+          productData.benefits,
+          productData.category,
+          productData.brand,
+          productData.price,
+          productData.currency,
+          productData.main_image_url,
+          productData.inventory_status,
+          (productData as any).available !== undefined ? (productData as any).available : true,
+          expiresAt.toISOString()
+        ).run();
+
+        if (result.success) {
+          return await this.getProduct(url) as StoredProduct;
+        } else {
+          throw new Error('Failed to save cached product to database');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving product with cache:', error);
+      throw error;
+    }
+  }
+
+  async deleteCachedProduct(url: string): Promise<void> {
+    try {
+      await this.db.prepare(
+        'UPDATE products SET cached_until = NULL WHERE product_url = ?'
+      ).bind(url).run();
+    } catch (error) {
+      console.error('Error invalidating cached product:', error);
+      throw error;
+    }
+  }
+
+  async getCacheStats(): Promise<{ totalCached: number; validEntries: number; expiredEntries: number }> {
+    try {
+      const total = await this.db.prepare(
+        'SELECT COUNT(*) as count FROM products WHERE scraping_method = "claude-api"'
+      ).first();
+
+      const valid = await this.db.prepare(
+        'SELECT COUNT(*) as count FROM products WHERE scraping_method = "claude-api" AND cached_until > datetime("now")'
+      ).first();
+
+      const expired = await this.db.prepare(
+        'SELECT COUNT(*) as count FROM products WHERE scraping_method = "claude-api" AND cached_until <= datetime("now")'
+      ).first();
+
+      return {
+        totalCached: (total as any)?.count || 0,
+        validEntries: (valid as any)?.count || 0,
+        expiredEntries: (expired as any)?.count || 0
+      };
+    } catch (error) {
+      console.error('Error getting cache stats:', error);
+      return { totalCached: 0, validEntries: 0, expiredEntries: 0 };
+    }
+  }
+
+  async cleanupExpiredCache(): Promise<number> {
+    try {
+      const result = await this.db.prepare(
+        'DELETE FROM products WHERE scraping_method = "claude-api" AND cached_until <= datetime("now")'
+      ).run();
+
+      return result.meta?.changes || 0;
+    } catch (error) {
+      console.error('Error cleaning up expired cache:', error);
+      return 0;
     }
   }
 }

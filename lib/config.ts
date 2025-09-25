@@ -6,8 +6,8 @@
 // Campaign generation settings
 export const CAMPAIGN_CONFIG = {
   // Image generation - FLUX-1-schnell optimized
-  MAX_CONCURRENT_GENERATIONS: 2, // Reduced for better reliability
-  AI_GENERATION_STEPS: 4, // Fast generation for MVP
+  MAX_CONCURRENT_GENERATIONS: 3, // Optimized for better throughput
+  AI_GENERATION_STEPS: 6, // Enhanced quality for production
   AI_GUIDANCE_SCALE: 0.0, // FLUX-1-schnell works better with 0 guidance
 
   // Campaign sizes - Limited for better performance and success rates
@@ -29,10 +29,11 @@ export const CAMPAIGN_CONFIG = {
 // Image format specifications
 // Using AI-friendly dimensions (multiples of 64) for better generation
 export const IMAGE_FORMATS = {
+  facebook_post: { width: 1200, height: 630, label: 'Facebook Post' },
   instagram_post: { width: 1024, height: 1024, label: 'Instagram Post' },
-  instagram_story: { width: 1024, height: 1792, label: 'Instagram Story' },
-  facebook_cover: { width: 1152, height: 640, label: 'Facebook Cover' },
-  pinterest: { width: 1024, height: 1536, label: 'Pinterest Pin' }
+  pinterest: { width: 1024, height: 1536, label: 'Pinterest Pin' },
+  snapchat_ad: { width: 1080, height: 1920, label: 'Snapchat Ad' },
+  linkedin_post: { width: 1200, height: 627, label: 'LinkedIn Post' }
 } as const;
 
 // Database pagination and limits

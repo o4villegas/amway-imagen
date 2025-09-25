@@ -8,7 +8,7 @@ import { IMAGE_FORMATS, CAMPAIGN_CONFIG } from './config';
 
 export interface ImagePrompt {
   text: string;
-  format: 'instagram_post' | 'instagram_story' | 'facebook_cover' | 'pinterest';
+  format: 'facebook_post' | 'instagram_post' | 'pinterest' | 'snapchat_ad' | 'linkedin_post';
   width: number;
   height: number;
   overlay: TextOverlay;
@@ -19,7 +19,7 @@ export interface TextOverlay {
   brandName: string;
   callToAction: string;
   disclaimer: string;
-  style: 'minimal' | 'moderate' | 'heavy';
+  style: 'minimal';
 }
 
 // Use centralized IMAGE_FORMATS from config for consistency
@@ -434,14 +434,16 @@ marketing imagery without product replication${lifestyleInstructions}
 
   private getFormatDescription(format: keyof typeof FORMAT_DIMENSIONS): string {
     switch (format) {
+      case 'facebook_post':
+        return 'landscape Facebook post optimized';
       case 'instagram_post':
         return 'square Instagram post optimized';
-      case 'instagram_story':
-        return 'vertical Instagram story optimized';
-      case 'facebook_cover':
-        return 'landscape Facebook cover optimized';
       case 'pinterest':
         return 'vertical Pinterest pin optimized';
+      case 'snapchat_ad':
+        return 'vertical Snapchat ad optimized';
+      case 'linkedin_post':
+        return 'landscape LinkedIn post optimized';
       default:
         return 'social media optimized';
     }
@@ -505,12 +507,14 @@ marketing imagery without product replication${lifestyleInstructions}
     // Add format-specific enhancements
     return variations.map(variation => {
       let enhanced = variation;
-      if (format === 'instagram_story') {
-        enhanced += ', vertical composition, story-style layout, engaging visual hierarchy';
+      if (format === 'snapchat_ad') {
+        enhanced += ', vertical composition, mobile-first design, engaging visual hierarchy';
       } else if (format === 'pinterest') {
         enhanced += ', Pinterest-style graphic, text overlay friendly, pin-worthy composition';
-      } else if (format === 'facebook_cover') {
-        enhanced += ', banner composition, brand story visual, cover photo style';
+      } else if (format === 'facebook_post') {
+        enhanced += ', social media optimized, brand story visual, engaging post style';
+      } else if (format === 'linkedin_post') {
+        enhanced += ', professional composition, business-focused, corporate social style';
       }
       return enhanced;
     });
@@ -526,25 +530,15 @@ marketing imagery without product replication${lifestyleInstructions}
     // Use sanitized product name for overlay text too
     const sanitizedProductName = this.sanitizeProductName(product.name);
 
-    let callToAction = '';
-    switch (preferences.text_overlay) {
-      case 'minimal':
-        callToAction = 'Learn More';
-        break;
-      case 'moderate':
-        callToAction = `Experience ${product.brand || 'Quality'} Difference`;
-        break;
-      case 'heavy':
-        callToAction = `Transform Your Life with ${product.brand || 'Premium'} Products - Start Today!`;
-        break;
-    }
+    // Clean images approach - minimal text overlay data for separate marketing copy
+    const callToAction = 'Learn More';
 
     return {
       productName: sanitizedProductName,
       brandName: product.brand || 'Amway',
       callToAction,
       disclaimer,
-      style: preferences.text_overlay
+      style: 'minimal' as const
     };
   }
 

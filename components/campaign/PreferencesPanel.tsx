@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CampaignPreferences } from '@/app/campaign/new/page';
-import { Settings, Palette, Type, Layout, Camera } from 'lucide-react';
+import { Settings, Palette, Layout, Camera } from 'lucide-react';
 
 interface PreferencesPanelProps {
   preferences: CampaignPreferences;
@@ -26,28 +26,34 @@ export function PreferencesPanel({ preferences, onChange, onComplete }: Preferen
 
   const imageFormatOptions = [
     {
-      id: 'instagram_post',
-      label: 'Instagram Post',
-      description: '1:1 Square (1080×1080)',
-      dimensions: '1080×1080'
+      id: 'facebook_post',
+      label: 'Facebook Post',
+      description: '16:9 Landscape (1200×630)',
+      dimensions: '1200×630'
     },
     {
-      id: 'instagram_story',
-      label: 'Instagram Story',
+      id: 'instagram_post',
+      label: 'Instagram Post',
+      description: '1:1 Square (1024×1024)',
+      dimensions: '1024×1024'
+    },
+    {
+      id: 'pinterest',
+      label: 'Pinterest Pin',
+      description: '2:3 Vertical (1024×1536)',
+      dimensions: '1024×1536'
+    },
+    {
+      id: 'snapchat_ad',
+      label: 'Snapchat Ad',
       description: '9:16 Vertical (1080×1920)',
       dimensions: '1080×1920'
     },
     {
-      id: 'facebook_cover',
-      label: 'Facebook Cover',
-      description: '16:9 Landscape (1200×675)',
-      dimensions: '1200×675'
-    },
-    {
-      id: 'pinterest',
-      label: 'Pinterest',
-      description: '2:3 Vertical (1000×1500)',
-      dimensions: '1000×1500'
+      id: 'linkedin_post',
+      label: 'LinkedIn Post',
+      description: '16:9 Landscape (1200×627)',
+      dimensions: '1200×627'
     }
   ] as const;
 
@@ -156,30 +162,6 @@ export function PreferencesPanel({ preferences, onChange, onComplete }: Preferen
           </CardContent>
         </Card>
 
-        {/* Text Overlay */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center text-base">
-              <Type className="h-4 w-4 mr-2" />
-              Text Overlay
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Select
-              value={preferences.text_overlay}
-              onValueChange={(value) => updatePreference('text_overlay', value as any)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="minimal">Minimal Text</SelectItem>
-                <SelectItem value="moderate">Moderate Text</SelectItem>
-                <SelectItem value="heavy">Text-Heavy</SelectItem>
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Image Formats Distribution */}

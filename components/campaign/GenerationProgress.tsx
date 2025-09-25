@@ -204,10 +204,6 @@ function GenerationProgressContent({ product, preferences, onComplete }: Generat
                   <span className="ml-2 font-medium capitalize">{preferences.campaign_type.replace('_', ' ')}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">Text Overlay:</span>
-                  <span className="ml-2 font-medium capitalize">{preferences.text_overlay}</span>
-                </div>
-                <div>
                   <span className="text-gray-600">Color Scheme:</span>
                   <span className="ml-2 font-medium capitalize">{preferences.color_scheme.replace('_', ' ')}</span>
                 </div>

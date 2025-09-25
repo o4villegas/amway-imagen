@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Amway IBO Image Campaign Generator - A production-ready, specialized application that converts Amway product URLs into professional marketing image campaigns. Features AI-powered image generation with automatic product scraping, campaign configuration, compliance integration, and comprehensive error handling.
+Amway IBO Image Campaign Generator - A production-ready, specialized application that converts Amway product URLs into professional marketing image campaigns. Features Claude API-powered product extraction, description-based AI image generation, marketing copy generation, and comprehensive campaign packaging.
 
 ## Development Commands
 
@@ -40,64 +40,81 @@ npx playwright show-report           # View comprehensive test results
 - **Frontend**: Next.js 14 with App Router, React 18, TypeScript
 - **Styling**: Tailwind CSS with shadcn/ui components
 - **Deployment**: Cloudflare Workers with Node.js Runtime
-- **AI**: Cloudflare Workers AI API (@cf/black-forest-labs/flux-1-schnell)
+- **AI Image Generation**: Cloudflare Workers AI API (@cf/black-forest-labs/flux-1-schnell)
+- **AI Product Extraction**: Claude API (Sonnet 4) for robust product scraping
 - **Storage**: Cloudflare R2 for campaign ZIP files
 - **Database**: Cloudflare D1 for product data and campaign history
-- **Web Scraping**: HTMLRewriter API for Amway product extraction
 
 ### Key Directories
 - `/app` - Next.js App Router pages and API routes
-  - `/campaign/new` - Multi-step campaign creation flow
-  - `/api/scrape` - Amway product URL scraping endpoint
-  - `/api/campaign/generate` - AI image generation and ZIP creation
+  - `/campaign/new` - Simplified URL-first campaign creation flow
+  - `/api/products/load` - Claude API product extraction endpoint
+  - `/api/campaign/generate` - AI image generation with marketing copy
   - `/api/campaign/download` - Campaign download management
 - `/components/campaign` - Campaign-specific UI components
-  - `URLInput.tsx` - Product URL input and validation
-  - `ProductPreview.tsx` - Scraped product information display
-  - `PreferencesPanel.tsx` - Campaign configuration interface
+  - `SimpleUrlInput.tsx` - Google-like minimal URL input
+  - `ScrapingProgress.tsx` - 4-stage extraction progress indicator
+  - `ProductPreview.tsx` - Extracted product information display
+  - `PreferencesPanel.tsx` - Campaign configuration (no text overlay options)
   - `GenerationProgress.tsx` - Real-time generation progress
-  - `DownloadManager.tsx` - Campaign download and management
+  - `DownloadManager.tsx` - Campaign download with marketing copy
 - `/lib` - Core business logic
-  - `scraper.ts` - Amway website scraping functionality
-  - `prompt-generator.ts` - AI prompt generation system
-  - `zip/` - Campaign packaging and ZIP creation utilities
-    - `zip-builder.ts` - Core ZIP file building functionality
-    - `zip-file-manager.ts` - ZIP file management and organization
+  - `ai-scraper.ts` - Claude API integration for product extraction
+  - `prompt-generator.ts` - Description-based image generation system
+  - `copy-generator.ts` - Marketing copy generation for each image
+  - `cache-manager.ts` - 24-hour product caching system
+  - `zip/` - Campaign packaging with images + marketing copy
   - `db.ts` - D1 database operations
 
 ### Core Functionality
 
-1. **Enhanced Product Browser Flow**:
-   - Comprehensive product dataset with 11 realistic Amway products
-   - Visual availability system: 3 working products + 8 "Coming Soon" disabled products
-   - Intelligent product selection with visual disabled states (greyed out, cursor-not-allowed)
-   - Professional UX with "Coming Soon" badges for unavailable products
-   - Maintains aesthetic appeal while clearly indicating functionality boundaries
+1. **Google-Like Landing Page**:
+   - Minimal design with single URL input field
+   - Tagline: "Transform Amway products into campaigns"
+   - Clean, spacious layout focusing on simplicity
+   - Direct navigation to campaign creation flow
 
-2. **Campaign Configuration**:
-   - Campaign type: Product focus vs Lifestyle focus
+2. **Claude API Product Extraction**:
+   - Robust AI-powered scraping using Claude API
+   - 4-stage progress indicator: Fetching → Extracting → Analyzing → Ready
+   - 24-hour caching to reduce API costs and improve performance
+   - Rate limiting: 10 scrapes per user per hour
+   - Comprehensive product data extraction (name, description, benefits, category)
+
+3. **Campaign Configuration**:
    - Brand style: Professional, Casual, Wellness, Luxury
-   - Image formats: Instagram Post/Story, Facebook Cover, Pinterest
-   - Text overlay density: Minimal, Moderate, Heavy
+   - Image formats: Instagram Post/Story, Facebook Cover, Pinterest, LinkedIn
+   - Campaign type: Lifestyle focus (benefit-based imagery)
    - Campaign size: Standardized to 5 images per campaign
+   - **NO text overlay options** - Clean images with separate marketing copy
 
-3. **AI Image Generation Pipeline**:
-   - Dynamic prompt generation based on product data and preferences
+4. **Description-Based AI Image Generation**:
+   - Lifestyle and benefit-focused imagery (NOT product recreation)
+   - Clean images without burned-in text or product visuals
+   - Dynamic prompts based on product benefits and emotional outcomes
    - Batch AI generation (max 3 concurrent for performance)
-   - Compliance text automatically included based on product category
    - Multiple format variations with optimized dimensions
 
-4. **Campaign Packaging & Download**:
-   - Images organized by format in ZIP structure
+5. **Marketing Copy Generation**:
+   - AI-generated marketing copy for each image
+   - Platform-appropriate captions and messaging
+   - Compliance disclaimers based on product category
+   - Copy included in campaign ZIP downloads
+
+6. **Campaign Packaging & Download**:
+   - Clean images organized by format in ZIP structure
+   - Separate marketing copy file with captions for each image
    - Campaign metadata and usage guidelines included
    - 24-hour download expiration with automatic cleanup
-   - Organized folder structure for easy social media use
 
 ### Database Schema
 
-- **products**: Scraped Amway product information with caching
+- **products**: Claude API extracted product information with 24-hour caching
+  - Added: `scraping_method` (default: 'claude-api')
+  - Added: `cached_until` timestamp for cache expiration
 - **campaigns**: User campaign configurations and status tracking
 - **generated_images**: Individual image records with metadata
+  - Added: `marketing_copy` TEXT for generated captions
 - **campaign_stats**: Analytics for generation success rates and performance
 
 ### Testing Architecture
@@ -120,44 +137,45 @@ npx playwright show-report           # View comprehensive test results
   - `BUCKET` - Legacy bucket (kept for compatibility)
   - `CAMPAIGN_STORAGE` - Campaign ZIP file storage
 - **AI Workers**: `AI` binding for Flux-1-Schnell image generation
-- **HTMLRewriter**: Native HTML parsing for product scraping
+- **External APIs**: Claude API for product extraction (requires `CLAUDE_API_KEY` secret)
 
 ## Important Notes
 
 - All API routes use edge runtime (`export const runtime = 'edge'`)
-- Product scraping supports amway.com domain with URL validation
-- Images generated with compliance disclaimers based on product category
+- Product extraction uses Claude API with 24-hour caching and rate limiting
+- **NEW APPROACH**: Description-based image generation (NO product recreation)
+- Images are clean without text overlays - marketing copy is separate
 - Campaign files expire after 24 hours and are automatically cleaned up
-- Prompt generation is context-aware based on product category and benefits
-- ZIP files include usage guidelines and compliance information
+- Prompt generation focuses on benefits and lifestyle outcomes, not product features
+- ZIP files include clean images + separate marketing copy file
 - Database operations include error handling and stats tracking
 - Development uses Next.js dev server (port 3000), testing/preview uses Wrangler (port 8788)
 - Production-safe logging with `devLog` from `lib/env-utils.ts`
 - Request deduplication available via `lib/request-dedup.ts`
 - Health checks available at `/api/health`, `/api/health/ready`, `/api/health/live`
-- **Recent Improvements**: Complete Cloudflare Workers migration with enhanced UI/UX and benefit-focused AI strategy
+- **Major Architecture Change**: Claude API scraping + simplified UI workflow
 
-### Text Preservation in AI Image Generation
+### New Image Generation Strategy
 
-**Critical for Product Marketing**: AI image models like FLUX-1-schnell struggle with text preservation, especially product labels, brand names, and trademark symbols.
+**Problem Solved**: Previous product recreation approach failed due to AI limitations with text, branding, and product accuracy.
 
-**Enhanced Text Preservation Techniques Implemented**:
-- **Crystal Clear Text Instructions**: Prompts include explicit text clarity requirements
-- **Brand Name Preservation**: Specific instructions to maintain brand typography and readability
-- **Trademark Symbol Protection**: Preserves ™, ®, © symbols in product names
-- **Label Positioning**: Optimizes camera angles for front-facing, readable text
-- **Typography Integrity**: Maintains original font weights and styling
-- **FLUX-1-schnell Optimizations**: Specific anti-blur and distortion instructions
+**NEW: Description-Based Imagery**:
+- **No Product Recreation**: Images focus on benefits and lifestyle outcomes
+- **Clean Images**: No text overlays, branding, or product visuals burned into images
+- **Separate Marketing Copy**: AI-generated captions and messaging for each image
+- **Benefit-Focused**: Emotional and aspirational imagery showing product outcomes
+- **Compliance Safe**: No risk of inaccurate product representation
 
-**Usage Guidelines**:
-- Product-focus campaigns receive maximum text preservation treatment
-- Lifestyle campaigns maintain brand text when visible but allow more creative freedom
-- Complex product names with numbers/symbols get enhanced preservation
-- Text preservation varies randomly to create natural-looking campaigns while maintaining readability
+**Implementation**:
+- **Lifestyle Scenes**: People experiencing product benefits (energy, confidence, wellness)
+- **Environmental Context**: Natural settings, home environments, wellness spaces
+- **Emotional Connection**: Focus on feelings and outcomes, not product features
+- **Professional Quality**: Commercial photography aesthetic without product constraints
 
-**Files Modified for Text Preservation**:
-- `lib/prompt-generator.ts`: Core text preservation logic and techniques
-- `lib/prompt-templates.ts`: Enhanced templates with text clarity instructions
+**Files Modified for New Strategy**:
+- `lib/prompt-generator.ts`: Complete rewrite for description-based prompts
+- `lib/copy-generator.ts`: New marketing copy generation system
+- `app/api/campaign/generate/route.ts`: Clean image + copy generation
 
 ## Production Best Practices
 

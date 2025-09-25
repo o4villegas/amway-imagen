@@ -34,7 +34,7 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
     category: 'product_focus',
     template: 'Professional {style} photograph of {productName}, {placement} on {background}, {lighting}, crystal clear product label text, all text elements perfectly legible and sharp, high-resolution commercial photography, {colorScheme}, emphasizing {primaryBenefit}',
     variables: ['style', 'productName', 'placement', 'background', 'lighting', 'colorScheme', 'primaryBenefit'],
-    suitableFormats: ['instagram_post', 'facebook_cover', 'pinterest'],
+    suitableFormats: ['instagram_post', 'facebook_post', 'pinterest', "linkedin_post"],
     style: ['minimalist', 'premium', 'clinical', 'elegant']
   },
 
@@ -44,7 +44,7 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
     category: 'product_focus',
     template: 'Macro close-up of {productName}, showcasing {keyFeature}, {textureDescription}, {lighting}, {angle} composition, razor-sharp text on product labels, readable typography preserved, highlighting {qualityIndicator}',
     variables: ['productName', 'keyFeature', 'textureDescription', 'lighting', 'angle', 'qualityIndicator'],
-    suitableFormats: ['instagram_post', 'pinterest'],
+    suitableFormats: ['instagram_post', 'pinterest', "linkedin_post"],
     style: ['detailed', 'technical', 'artistic', 'scientific']
   },
 
@@ -55,7 +55,7 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
     category: 'lifestyle',
     template: '{demographic} {action} with {productName} in {setting}, {timeOfDay}, {mood} atmosphere, showcasing {lifestyleBenefit}, {naturalLighting}',
     variables: ['demographic', 'action', 'productName', 'setting', 'timeOfDay', 'mood', 'lifestyleBenefit', 'naturalLighting'],
-    suitableFormats: ['instagram_story', 'facebook_cover', 'pinterest'],
+    suitableFormats: ['snapchat_ad', 'facebook_post', 'pinterest', "linkedin_post"],
     style: ['authentic', 'aspirational', 'relatable', 'inspiring']
   },
 
@@ -65,7 +65,7 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
     category: 'lifestyle',
     template: 'Split composition showing {transformationType} journey with {productName}, {beforeState} transitioning to {afterState}, {emotionalJourney}, inspiring {targetAudience}',
     variables: ['transformationType', 'productName', 'beforeState', 'afterState', 'emotionalJourney', 'targetAudience'],
-    suitableFormats: ['instagram_post', 'facebook_cover', 'pinterest'],
+    suitableFormats: ['instagram_post', 'facebook_post', 'pinterest', "linkedin_post"],
     style: ['motivational', 'documentary', 'testimonial', 'journey']
   },
 
@@ -76,7 +76,7 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
     category: 'brand_story',
     template: '{productName} representing {brandValues}, {heritageElement} meets {modernInnovation}, {premiumQuality} photography, {brandColorScheme}',
     variables: ['productName', 'brandValues', 'heritageElement', 'modernInnovation', 'premiumQuality', 'brandColorScheme'],
-    suitableFormats: ['facebook_cover', 'pinterest'],
+    suitableFormats: ['facebook_post', 'pinterest', "linkedin_post"],
     style: ['sophisticated', 'timeless', 'prestigious', 'established']
   },
 
@@ -87,7 +87,7 @@ export const PROMPT_TEMPLATES: PromptTemplate[] = [
     category: 'benefit_focus',
     template: 'Visual metaphor of {primaryBenefit} through {productName}, {symbolicElement} representing {benefitOutcome}, {artisticStyle}, {emotionalResonance}',
     variables: ['primaryBenefit', 'productName', 'symbolicElement', 'benefitOutcome', 'artisticStyle', 'emotionalResonance'],
-    suitableFormats: ['instagram_story', 'pinterest'],
+    suitableFormats: ['snapchat_ad', 'pinterest', "linkedin_post"],
     style: ['conceptual', 'metaphorical', 'artistic', 'symbolic']
   }
 ];
@@ -292,9 +292,10 @@ export class PromptTemplateEngine {
   private getFormatEnhancement(format: keyof typeof IMAGE_FORMATS): string {
     const enhancements = {
       'instagram_post': ', square composition optimized for social media engagement',
-      'instagram_story': ', vertical composition with engaging visual hierarchy',
-      'facebook_cover': ', panoramic composition suitable for cover display',
-      'pinterest': ', pin-worthy vertical composition with clear visual focus'
+      'snapchat_ad': ', vertical composition with engaging visual hierarchy',
+      'facebook_post': ', panoramic composition suitable for cover display',
+      'pinterest': ', pin-worthy vertical composition with clear visual focus',
+      'linkedin_post': ', professional composition optimized for business networking'
     };
     return enhancements[format] || '';
   }
