@@ -128,7 +128,19 @@ export async function POST(request: NextRequest) {
       const normalizedUrl = new URL(url).href;
       console.log(`[SCRAPING] Retrieving stored product - Original URL: ${url}`);
       console.log(`[SCRAPING] Retrieving stored product - Normalized URL: ${normalizedUrl}`);
-      const storedProduct = await db.getProduct(normalizedUrl);
+      console.log(`[SCRAPING] URL comparison - Storage URL match: ${url === normalizedUrl}`);
+
+      // Try both the original and normalized URL to see which one works
+      let storedProduct = await db.getProduct(url);
+      if (!storedProduct) {
+        console.log(`[SCRAPING] Product not found with original URL, trying normalized...`);
+        storedProduct = await db.getProduct(normalizedUrl);
+      }
+      if (!storedProduct) {
+        console.log(`[SCRAPING] Product not found with either URL format`);
+      } else {
+        console.log(`[SCRAPING] Found product with ID: ${storedProduct.id}, stored URL: ${storedProduct.product_url}`);
+      }
 
       console.log(`[SCRAPING] Successfully completed extraction for: ${extractionResult.name}`);
 
