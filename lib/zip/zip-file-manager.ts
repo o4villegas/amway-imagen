@@ -37,6 +37,36 @@ export class ZipFileManager {
   }
 
   /**
+   * Organizes campaign files with marketing copy
+   */
+  organizeFilesWithCopy(
+    images: CampaignFile[],
+    metadata: CampaignMetadata,
+    marketingCopy: Array<{ format: string; copy: any }>
+  ): ZipFileEntry[] {
+    const files: ZipFileEntry[] = [];
+
+    // Group images by format
+    const formatGroups = this.groupByFormat(images);
+
+    // Add organized image files
+    for (const [format, formatImages] of Array.from(formatGroups.entries())) {
+      formatImages.forEach((img, index) => {
+        const filename = this.generateImageFilename(img, metadata, index);
+        files.push({
+          name: filename,
+          data: img.content
+        });
+      });
+    }
+
+    // Add metadata files with marketing copy
+    files.push(...this.generateMetadataFilesWithCopy(metadata, marketingCopy));
+
+    return files;
+  }
+
+  /**
    * Groups images by format
    */
   private groupByFormat(images: CampaignFile[]): Map<string, CampaignFile[]> {
@@ -203,5 +233,133 @@ For technical support or questions about image usage, contact your Amway support
 ---
 *Generated with Amway IBO Image Campaign Generator*
 `.trim();
+  }
+
+  /**
+   * Generates metadata files including marketing copy
+   */
+  private generateMetadataFilesWithCopy(
+    metadata: CampaignMetadata,
+    marketingCopy: Array<{ format: string; copy: any }>
+  ): ZipFileEntry[] {
+    const files = [
+      {
+        name: 'campaign_info.json',
+        data: new TextEncoder().encode(JSON.stringify(metadata, null, 2)).buffer
+      },
+      {
+        name: 'USAGE_GUIDELINES.txt',
+        data: new TextEncoder().encode(this.generateUsageGuidelines(metadata)).buffer
+      },
+      {
+        name: 'README.md',
+        data: new TextEncoder().encode(this.generateReadme(metadata)).buffer
+      }
+    ];
+
+    // Add marketing copy file if available
+    if (marketingCopy.length > 0) {
+      files.push({
+        name: 'MARKETING_COPY.txt',
+        data: new TextEncoder().encode(this.generateMarketingCopyFile(marketingCopy, metadata)).buffer
+      });
+    }
+
+    return files;
+  }
+
+  /**
+   * Generates marketing copy text file
+   */
+  private generateMarketingCopyFile(
+    marketingCopy: Array<{ format: string; copy: any }>,
+    metadata: CampaignMetadata
+  ): string {
+    let content = `SOCIAL MEDIA MARKETING COPY
+============================
+
+Product: ${metadata.product.name}
+Brand: ${metadata.product.brand}
+Generated: ${new Date(metadata.generated).toLocaleDateString()}
+
+${'='.repeat(60)}
+
+`;
+
+    // Group and format marketing copy by platform
+    marketingCopy.forEach(({ format, copy }) => {
+      const platformName = this.formatToPlatformName(format);
+      content += `${platformName.toUpperCase()}
+${'-'.repeat(platformName.length)}
+
+`;
+
+      if (copy.headline) {
+        content += `HEADLINE:
+${copy.headline}
+
+`;
+      }
+
+      if (copy.body) {
+        content += `CAPTION/BODY:
+${copy.body}
+
+`;
+      }
+
+      if (copy.hashtags && copy.hashtags.length > 0) {
+        content += `HASHTAGS:
+${copy.hashtags.join(' ')}
+
+`;
+      }
+
+      if (copy.cta) {
+        content += `CALL TO ACTION:
+${copy.cta}
+
+`;
+      }
+
+      if (copy.disclaimer) {
+        content += `DISCLAIMER:
+${copy.disclaimer}
+
+`;
+      }
+
+      content += `${'='.repeat(60)}
+
+`;
+    });
+
+    content += `
+COPY USAGE TIPS:
+- Personalize with your own story and experience
+- Add location-specific hashtags for better reach
+- Engage with comments to build community
+- Post at optimal times for your audience
+- Always maintain compliance with disclaimers
+
+© ${new Date().getFullYear()} Generated for Amway IBOs`;
+
+    return content;
+  }
+
+  /**
+   * Maps format to platform name
+   */
+  private formatToPlatformName(format: string): string {
+    const platformMap: Record<string, string> = {
+      'facebook_post': 'Facebook',
+      'instagram_post': 'Instagram Feed',
+      'instagram_story': 'Instagram Stories',
+      'pinterest': 'Pinterest',
+      'snapchat_ad': 'Snapchat',
+      'linkedin_post': 'LinkedIn'
+    };
+
+    return platformMap[format] || format;
   }
 }

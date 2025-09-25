@@ -46,6 +46,21 @@ export class ZipCreator {
   }
 
   /**
+   * Creates a campaign ZIP file with marketing copy included
+   */
+  async createCampaignZipWithCopy(
+    images: CampaignFile[],
+    metadata: CampaignMetadata,
+    marketingCopy: Array<{ format: string; copy: any }>
+  ): Promise<ArrayBuffer> {
+    // Organize files into proper structure
+    const organizedFiles = this.fileManager.organizeFilesWithCopy(images, metadata, marketingCopy);
+
+    // Build ZIP file
+    return this.zipBuilder.createZipBuffer(organizedFiles);
+  }
+
+  /**
    * Legacy method for backward compatibility
    * @deprecated Use the modular createCampaignZip method instead
    */

@@ -53,3 +53,6 @@ ux-analysis-*/
 # log files
 *.log
 build.log
+
+# amway-scraper folder (contains API keys and test files)
+amway-scraper/

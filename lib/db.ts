@@ -47,6 +47,7 @@ export interface GeneratedImage {
   width: number;
   height: number;
   selected?: boolean;
+  marketing_copy?: string;
   generated_at?: string;
 }
 
@@ -256,8 +257,9 @@ export class DatabaseManager {
           r2_path,
           width,
           height,
-          selected
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          selected,
+          marketing_copy
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         image.campaign_id,
         image.format,
@@ -266,7 +268,8 @@ export class DatabaseManager {
         image.r2_path || null,
         image.width,
         image.height,
-        image.selected !== undefined ? image.selected : true
+        image.selected !== undefined ? image.selected : true,
+        image.marketing_copy || null
       ).run();
     } catch (error) {
       console.error('Error saving generated image:', error);

@@ -9,6 +9,7 @@ import { generateCampaignSchema, validateRequest, validateCampaignRequest, safeL
 import { withTimeout, TIMEOUTS, TimeoutError } from '@/lib/timeout-utils';
 import { CAMPAIGN_CONFIG } from '@/lib/config';
 import { isDevelopment, isTest, logError } from '@/lib/env-utils';
+import { MarketingCopyGenerator } from '@/lib/copy-generator';
 
 
 // This API route is dynamic and should not be statically generated
@@ -150,7 +151,16 @@ export async function POST(request: NextRequest) {
       const promptGenerator = new PromptGenerator();
       const imagePrompts = promptGenerator.generateCampaignPrompts(product, normalizedPreferences);
 
+      // Generate marketing copy for each format
+      const copyGenerator = new MarketingCopyGenerator();
+      const marketingCopyMap = copyGenerator.generateCampaignCopy(
+        product,
+        normalizedPreferences,
+        normalizedPreferences.image_formats
+      );
+
       const generatedImages: CampaignFile[] = [];
+      const marketingCopyCollection: Array<{ format: string; copy: any }> = [];
       const maxConcurrent = CAMPAIGN_CONFIG.MAX_CONCURRENT_GENERATIONS;
 
       // Process images in batches
@@ -247,7 +257,18 @@ export async function POST(request: NextRequest) {
               'R2 image upload'
             );
 
-            // Save to database with R2 path
+            // Get marketing copy for this format
+            const marketingCopy = marketingCopyMap.get(prompt.format);
+
+            // Collect marketing copy for ZIP file
+            if (marketingCopy && !marketingCopyCollection.some(mc => mc.format === prompt.format)) {
+              marketingCopyCollection.push({
+                format: prompt.format,
+                copy: marketingCopy
+              });
+            }
+
+            // Save to database with R2 path and marketing copy
             await withTimeout(
               dbManager.saveGeneratedImage({
               campaign_id: campaignId!,
@@ -257,7 +278,8 @@ export async function POST(request: NextRequest) {
               r2_path: r2Path,
               width: prompt.width,
               height: prompt.height,
-              selected: true // Default to selected
+              selected: true, // Default to selected
+              marketing_copy: marketingCopy ? JSON.stringify(marketingCopy) : undefined
             }),
               TIMEOUTS.DB_OPERATION,
               'Database save'
@@ -331,7 +353,7 @@ export async function POST(request: NextRequest) {
       };
 
       const zipBuffer = await withTimeout(
-        zipCreator.createCampaignZip(generatedImages, metadata),
+        zipCreator.createCampaignZipWithCopy(generatedImages, metadata, marketingCopyCollection),
         TIMEOUTS.ZIP_CREATION,
         'ZIP file creation'
       );

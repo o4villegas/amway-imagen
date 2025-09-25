@@ -179,6 +179,139 @@ const TEXT_PRESERVATION_TECHNIQUES = {
 export class PromptGenerator {
   private templateEngine = new PromptTemplateEngine();
 
+  private generateSceneDescription(product: StoredProduct, preferences: CampaignPreferences): string {
+    const category = (product.category || 'other').toLowerCase();
+    const benefitText = (product.benefits || '').toLowerCase();
+
+    // Scene types based on category and benefits
+    const scenes = {
+      nutrition: [
+        'Energetic person in their 30s at mountain peak during golden hour, arms raised in triumphant pose',
+        'Family enjoying active outdoor adventure, hiking through scenic nature trail together',
+        'Morning yoga session in sunlit home studio, person in peaceful meditation pose'
+      ],
+      beauty: [
+        'Woman in early 30s with glowing radiant skin, natural morning light streaming through sheer curtains',
+        'Person touching their face gently with confidence, soft natural makeup emphasizing healthy glow',
+        'Authentic beauty moment in bright airy bathroom, person admiring their reflection with genuine smile'
+      ],
+      home: [
+        'Modern kitchen with family preparing healthy meal together, bright and organized space',
+        'Peaceful living room with natural light, person relaxing in clean harmonious environment',
+        'Fresh and organized bedroom space, morning sunlight highlighting pristine surfaces'
+      ],
+      personal_care: [
+        'Person in luxurious spa-like bathroom, enjoying self-care routine with serene expression',
+        'Active lifestyle scene with person post-workout, confident and refreshed',
+        'Morning routine in modern bathroom, person starting day with energy and confidence'
+      ],
+      other: [
+        'Person experiencing wellness benefits in everyday life setting',
+        'Lifestyle transformation moment showing confidence and vitality',
+        'Natural environment with person embodying health and happiness'
+      ]
+    };
+
+    const categoryScenes = scenes[category as keyof typeof scenes] || scenes.other;
+
+    // Select scene based on lifestyle vs product focus
+    if (preferences.campaign_type === 'lifestyle') {
+      // Add people and action to scenes
+      const selectedScene = categoryScenes[Math.floor(Math.random() * categoryScenes.length)];
+      return selectedScene + ', wearing modern casual attire, expressing genuine joy and accomplishment';
+    } else {
+      // More abstract/conceptual scenes without specific products
+      const selectedScene = categoryScenes[Math.floor(Math.random() * categoryScenes.length)];
+      return selectedScene.replace(/person/gi, 'individual').replace(/their/gi, 'the');
+    }
+  }
+
+  private generateMoodFromBenefits(product: StoredProduct): string {
+    const benefitText = (product.benefits || '').toLowerCase();
+    const moods = [];
+
+    // Map benefits to mood descriptors
+    if (benefitText.includes('energy') || benefitText.includes('vitality')) {
+      moods.push('energized', 'vital', 'dynamic');
+    }
+    if (benefitText.includes('immune') || benefitText.includes('protect')) {
+      moods.push('protected', 'strong', 'resilient');
+    }
+    if (benefitText.includes('beauty') || benefitText.includes('radiant')) {
+      moods.push('radiant', 'confident', 'glowing');
+    }
+    if (benefitText.includes('clean') || benefitText.includes('fresh')) {
+      moods.push('fresh', 'pure', 'pristine');
+    }
+    if (benefitText.includes('wellness') || benefitText.includes('health')) {
+      moods.push('healthy', 'balanced', 'harmonious');
+    }
+
+    // Add default moods
+    moods.push('confident', 'accomplished', 'optimistic');
+
+    // Return unique moods as comma-separated string
+    return Array.from(new Set(moods)).slice(0, 5).join(', ');
+  }
+
+  private generateVisualStyle(brandStyle: string): string {
+    const styles = {
+      professional: 'Clean professional lifestyle photography, crisp focus, high contrast, corporate aesthetic',
+      casual: 'Relaxed authentic photography, natural tones, approachable feel, everyday scenarios',
+      wellness: 'Bright airy photography, natural elements, organic composition, mindful aesthetic',
+      luxury: 'Elegant sophisticated photography, premium quality, rich tones, exclusive feel'
+    };
+
+    return styles[brandStyle as keyof typeof styles] || styles.professional;
+  }
+
+  private getFormatSpecification(format: keyof typeof FORMAT_DIMENSIONS): string {
+    const dims = FORMAT_DIMENSIONS[format];
+    const formatNames = {
+      facebook_post: 'Facebook post',
+      instagram_post: 'Instagram post',
+      pinterest: 'Pinterest pin',
+      snapchat_ad: 'Snapchat ad',
+      linkedin_post: 'LinkedIn post'
+    };
+
+    return `${formatNames[format]}, ${dims.width}x${dims.height}px, ${dims.width > dims.height ? 'horizontal' : dims.width === dims.height ? 'square' : 'vertical'} format`;
+  }
+
+  private extractPrimaryBenefit(product: StoredProduct): string {
+    const benefits = product.benefits || '';
+    const benefitList = benefits.split('.').filter(b => b.trim());
+
+    if (benefitList.length > 0) {
+      // Convert first benefit to outcome-focused statement
+      const primaryBenefit = benefitList[0].toLowerCase().trim();
+
+      // Transform benefit to outcome
+      if (primaryBenefit.includes('energy')) {
+        return 'feeling energized and ready to tackle any challenge';
+      }
+      if (primaryBenefit.includes('immune')) {
+        return 'feeling protected and resilient in daily life';
+      }
+      if (primaryBenefit.includes('beauty') || primaryBenefit.includes('skin')) {
+        return 'radiating confidence with healthy glowing skin';
+      }
+      if (primaryBenefit.includes('clean')) {
+        return 'living in a fresh, pristine environment';
+      }
+      if (primaryBenefit.includes('wellness') || primaryBenefit.includes('health')) {
+        return 'achieving optimal health and balanced wellness';
+      }
+
+      // Generic transformation
+      return primaryBenefit.replace(/supports?/gi, 'experiencing')
+                           .replace(/provides?/gi, 'enjoying')
+                           .replace(/helps?/gi, 'achieving');
+    }
+
+    return 'experiencing enhanced wellness and vitality';
+  }
+
   private sanitizeProductName(name: string): string {
     return name
       .replace(/™|®|©/g, '') // Remove trademark symbols
@@ -188,133 +321,6 @@ export class PromptGenerator {
       .trim();
   }
 
-  private extractBenefitConcepts(product: StoredProduct): string[] {
-    const benefitConcepts: string[] = [];
-    const benefitText = (product.benefits || '').toLowerCase();
-    const productName = product.name.toLowerCase();
-    const category = (product.category || 'other').toLowerCase();
-
-    // Enhanced benefit detection with concept mapping
-    const benefitMappings = [
-      { keywords: ['energy', 'vitality', 'stamina', 'vigor'], concepts: BENEFIT_CONCEPTS.energy },
-      { keywords: ['wellness', 'health', 'wellbeing'], concepts: BENEFIT_CONCEPTS.wellness },
-      { keywords: ['beauty', 'skin', 'radiance', 'glow'], concepts: BENEFIT_CONCEPTS.beauty },
-      { keywords: ['nutrition', 'nutrient', 'vitamin', 'mineral'], concepts: BENEFIT_CONCEPTS.nutrition },
-      { keywords: ['immune', 'immunity', 'defense', 'protection'], concepts: BENEFIT_CONCEPTS.immunity },
-      { keywords: ['clean', 'fresh', 'pure', 'hygiene'], concepts: BENEFIT_CONCEPTS.cleanliness },
-      { keywords: ['skincare', 'complexion', 'moistur'], concepts: BENEFIT_CONCEPTS.skincare },
-      { keywords: ['fitness', 'strength', 'muscle', 'workout'], concepts: BENEFIT_CONCEPTS.fitness },
-      { keywords: ['hair', 'shine', 'scalp', 'volume'], concepts: BENEFIT_CONCEPTS.haircare }
-    ];
-
-    // Extract concepts based on benefits and product context
-    benefitMappings.forEach(mapping => {
-      const hasKeyword = mapping.keywords.some(keyword =>
-        benefitText.includes(keyword) || productName.includes(keyword)
-      );
-
-      if (hasKeyword) {
-        // Select a random concept from the mapping
-        const randomConcept = mapping.concepts[Math.floor(Math.random() * mapping.concepts.length)];
-        benefitConcepts.push(randomConcept);
-      }
-    });
-
-    // Category-based fallback concepts
-    if (benefitConcepts.length === 0) {
-      const categoryFallbacks = {
-        'nutrition': BENEFIT_CONCEPTS.nutrition,
-        'beauty': BENEFIT_CONCEPTS.beauty,
-        'personal_care': BENEFIT_CONCEPTS.wellness,
-        'home': BENEFIT_CONCEPTS.cleanliness,
-        'health': BENEFIT_CONCEPTS.wellness
-      };
-
-      const fallbackConcepts = categoryFallbacks[category as keyof typeof categoryFallbacks] || BENEFIT_CONCEPTS.wellness;
-      benefitConcepts.push(fallbackConcepts[0]);
-    }
-
-    return benefitConcepts.slice(0, 2); // Limit to 2 primary concepts
-  }
-
-  private getVisualMetaphors(benefitConcepts: string[]): string[] {
-    const metaphors: string[] = [];
-
-    // Map benefit concepts to visual metaphors
-    Object.entries(VISUAL_METAPHORS).forEach(([key, metaphorList]) => {
-      const hasRelatedConcept = benefitConcepts.some(concept =>
-        concept.includes(key) ||
-        concept.includes('energy') && key === 'energy' ||
-        concept.includes('strength') && key === 'strength' ||
-        concept.includes('purity') && key === 'purity' ||
-        concept.includes('balance') && key === 'balance' ||
-        concept.includes('confidence') && key === 'confidence'
-      );
-
-      if (hasRelatedConcept) {
-        const randomMetaphor = metaphorList[Math.floor(Math.random() * metaphorList.length)];
-        metaphors.push(randomMetaphor);
-      }
-    });
-
-    return metaphors.slice(0, 1); // One primary metaphor per image
-  }
-
-  private getTextPreservationInstructions(product: StoredProduct, campaignType: string): string {
-    // Extract any potential text elements from product name and brand
-    const brandName = product.brand || 'Amway';
-    const productName = product.name;
-    const hasNumericElements = /\d/.test(productName);
-    const hasSpecialChars = /[™®©]/.test(productName);
-
-    let textInstructions: string[] = [];
-
-    if (campaignType === 'product_focus') {
-      // Core text preservation for product focus
-      textInstructions.push(
-        TEXT_PRESERVATION_TECHNIQUES.clarity[Math.floor(Math.random() * TEXT_PRESERVATION_TECHNIQUES.clarity.length)],
-        TEXT_PRESERVATION_TECHNIQUES.positioning[Math.floor(Math.random() * TEXT_PRESERVATION_TECHNIQUES.positioning.length)],
-        TEXT_PRESERVATION_TECHNIQUES.technical[Math.floor(Math.random() * TEXT_PRESERVATION_TECHNIQUES.technical.length)]
-      );
-
-      // Brand-specific preservation
-      if (brandName && brandName !== 'Amway') {
-        textInstructions.push(`"${brandName}" brand name clearly visible and readable`);
-        textInstructions.push(TEXT_PRESERVATION_TECHNIQUES.brand[Math.floor(Math.random() * TEXT_PRESERVATION_TECHNIQUES.brand.length)]);
-      }
-
-      // Special element preservation
-      if (hasNumericElements) {
-        textInstructions.push('all numbers and measurements clearly readable');
-      }
-
-      if (hasSpecialChars) {
-        textInstructions.push('trademark symbols (™®©) preserved and visible');
-      }
-
-      // FLUX-1-schnell specific optimizations
-      textInstructions.push(
-        'avoid text blur or distortion artifacts',
-        'maintain original label typography and font weights',
-        'product text remains unaltered from source design'
-      );
-
-    } else {
-      // For lifestyle shots - more relaxed but still preserve key text
-      textInstructions.push('readable brand text when product is visible');
-
-      if (brandName && brandName !== 'Amway') {
-        textInstructions.push(`"${brandName}" branding legible when shown`);
-      }
-
-      textInstructions.push(
-        'avoid obscuring important product text',
-        'maintain brand identity when product appears'
-      );
-    }
-
-    return textInstructions.join(', ');
-  }
 
   private validatePromptLength(prompt: string, product: StoredProduct, campaignType: string): string {
     const maxLength = CAMPAIGN_CONFIG.MAX_PROMPT_LENGTH;
@@ -323,25 +329,26 @@ export class PromptGenerator {
       return prompt;
     }
 
-    // Prompt is too long - apply fallback strategy
+    // Prompt is too long - apply fallback with description format
     console.warn(`[PROMPT_VALIDATION] Prompt length ${prompt.length} exceeds ${maxLength}, applying fallback`);
 
-    // Fallback strategy: Simplified text preservation
-    const fallbackTextPreservation = this.getFallbackTextPreservation(product, campaignType);
-
-    // Rebuild with essential elements only
-    const sanitizedProductName = this.sanitizeProductName(product.name);
-    const styleModifiers = STYLE_MODIFIERS.professional; // Use professional as safe default
-    const campaignTypeConfig = CAMPAIGN_TYPES[campaignType as keyof typeof CAMPAIGN_TYPES] || CAMPAIGN_TYPES.product_focus;
+    // Simplified description-based fallback
+    const primaryBenefit = this.extractPrimaryBenefit(product);
+    const category = product.category || 'wellness';
 
     const fallbackPrompt = `
-${campaignTypeConfig.basePrompt} ${sanitizedProductName},
-${fallbackTextPreservation},
-professional studio lighting,
-clean composition,
-high resolution commercial photography,
-marketing quality
-`.replace(/\s+/g, ' ').trim();
+Professional lifestyle photography for ${category} campaign.
+
+SCENE: Person experiencing wellness benefits in natural setting
+
+MOOD & FEELING: Confident, healthy, accomplished
+
+VISUAL STYLE: Clean professional photography
+
+NO PRODUCTS VISIBLE. Focus on: ${primaryBenefit}
+
+FORMAT: Social media optimized
+`.trim();
 
     const finalPrompt = sanitizePrompt(fallbackPrompt);
 
@@ -355,27 +362,6 @@ marketing quality
     return finalPrompt;
   }
 
-  private getFallbackTextPreservation(product: StoredProduct, campaignType: string): string {
-    // Minimal but essential text preservation for fallback
-    const brandName = product.brand || 'Amway';
-    const essentialInstructions = [];
-
-    if (campaignType === 'product_focus') {
-      essentialInstructions.push('clear readable text');
-
-      if (brandName !== 'Amway') {
-        essentialInstructions.push(`"${brandName}" visible`);
-      }
-
-      if (/[™®©]/.test(product.name)) {
-        essentialInstructions.push('preserve symbols');
-      }
-    } else {
-      essentialInstructions.push('readable branding');
-    }
-
-    return essentialInstructions.join(', ');
-  }
 
   private generateBasePrompt(
     product: StoredProduct,
@@ -385,45 +371,29 @@ marketing quality
     // Sanitize product data first
     const safeProduct = sanitizeProductData(product) as StoredProduct;
 
-    // Extract benefit concepts instead of using product name
-    const benefitConcepts = this.extractBenefitConcepts(safeProduct);
-    const visualMetaphors = this.getVisualMetaphors(benefitConcepts);
+    // Generate description-based prompt per specification
+    const scene = this.generateSceneDescription(safeProduct, preferences);
+    const mood = this.generateMoodFromBenefits(safeProduct);
+    const visualStyle = this.generateVisualStyle(preferences.brand_style);
+    const lighting = STYLE_MODIFIERS[preferences.brand_style].lighting;
+    const formatSpec = this.getFormatSpecification(format);
+    const primaryBenefit = this.extractPrimaryBenefit(safeProduct);
 
-    const styleModifiers = STYLE_MODIFIERS[preferences.brand_style];
-    const campaignType = CAMPAIGN_TYPES[preferences.campaign_type];
-    const formatAspect = this.getFormatDescription(format);
-
-    // Get brand context without product specifics
-    const brandName = safeProduct.brand || 'Amway';
-    const categoryContext = safeProduct.category || 'wellness';
-
-    // Select compliance safeguard
-    const complianceSafeguard = COMPLIANCE_SAFEGUARDS[Math.floor(Math.random() * COMPLIANCE_SAFEGUARDS.length)];
-
-    // Build benefit-focused prompt structure
-    const primaryConcept = benefitConcepts[0] || 'wellness enhancement concepts';
-    const visualMetaphor = visualMetaphors[0] || 'harmonious composition';
-
-    // Add lifestyle-specific instructions to avoid product imagery
-    let lifestyleInstructions = '';
-    if (preferences.campaign_type === 'lifestyle') {
-      // Use positive phrasing to guide FLUX-1-schnell away from products
-      // Since FLUX doesn't support negative prompts, we phrase as positive guidance
-      lifestyleInstructions = ', abstract lifestyle visualization, environmental and emotional focus, people and lifestyle settings without physical products or containers';
-    }
-
+    // Build description-based prompt structure as per prompt_examples.md
     const rawPrompt = `
-${campaignType.basePrompt} ${primaryConcept} for ${categoryContext} lifestyle,
-${visualMetaphor},
-${brandName} brand aesthetic guidelines,
-${styleModifiers.mood} atmosphere,
-${styleModifiers.lighting},
-${campaignType.emphasis},
-${formatAspect},
-${complianceSafeguard},
-professional commercial photography quality,
-marketing imagery without product replication${lifestyleInstructions}
-`.replace(/\s+/g, ' ').trim();
+Professional lifestyle photography for ${safeProduct.category || 'wellness'} campaign.
+
+SCENE: ${scene}
+
+MOOD & FEELING: ${mood}
+
+VISUAL STYLE: ${visualStyle}, ${lighting}
+
+NO PRODUCTS VISIBLE. Focus entirely on the outcome: ${primaryBenefit}
+
+FORMAT: ${formatSpec}
+BRAND ALIGNMENT: ${preferences.brand_style} aesthetic, Amway brand values
+`.trim();
 
     // Sanitize the final prompt
     const sanitizedPrompt = sanitizePrompt(rawPrompt);
@@ -456,20 +426,29 @@ marketing imagery without product replication${lifestyleInstructions}
     format: keyof typeof FORMAT_DIMENSIONS,
     count: number = 5
   ): string[] {
-    // Use enhanced template system for better diversity
-    const enhancedPrompts = this.templateEngine.generateEnhancedPrompts(
-      product,
-      preferences,
-      format as keyof typeof IMAGE_FORMATS,
-      count
-    );
+    const variations: string[] = [];
 
-    // Fallback to basic variations if enhanced system fails
-    if (enhancedPrompts.length === 0) {
-      return this.generateBasicVariations(basePrompt, preferences.campaign_type, format, count);
+    // Generate variations with different scene elements
+    for (let i = 0; i < count; i++) {
+      // Create variation by modifying scene details
+      const variationElements = [
+        'different time of day lighting',
+        'alternative angle and composition',
+        'varied emotional expression',
+        'adjusted environmental details',
+        'modified action or pose'
+      ];
+
+      // Add slight variations to the base prompt
+      const variation = basePrompt.replace(
+        /SCENE: ([^\n]+)/,
+        (match, scene) => `SCENE: ${scene}, ${variationElements[i % variationElements.length]}`
+      );
+
+      variations.push(variation);
     }
 
-    return enhancedPrompts;
+    return variations;
   }
 
   private generateBasicVariations(
