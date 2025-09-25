@@ -108,7 +108,8 @@ export class ProductCacheManager {
 
     } catch (error) {
       console.error('[CACHE] Error caching product:', error);
-      // Don't throw - caching failure shouldn't break the scraping flow
+      // Temporarily throw the error to see what's actually failing
+      throw new Error(`Cache operation failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
