@@ -189,13 +189,16 @@ export async function POST(request: NextRequest) {
               promptLength: prompt.text.length
             });
 
-            // Enhanced AI generation with retry logic
+            // Intelligent AI generation with adaptive retry strategy
             let response: { image?: string } | undefined;
-            // Retry logic for AI generation failures
             let lastError: any;
-            for (let attempt = 1; attempt <= 5; attempt++) {
+
+            const maxAttempts = 3; // Reduced from 5 for faster failure detection
+            const baseDelayMs = 1000; // Start with 1 second
+
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
                 try {
-                  console.log(`[AI_GENERATION] Attempt ${attempt}/5 for ${prompt.format}`);
+                  console.log(`[AI_GENERATION] Attempt ${attempt}/${maxAttempts} for ${prompt.format}`);
                   response = await withTimeout(
                     AI.run('@cf/black-forest-labs/flux-1-schnell', aiInput),
                     TIMEOUTS.AI_GENERATION,
@@ -214,13 +217,26 @@ export async function POST(request: NextRequest) {
                     type: error.name
                   });
 
-                  // If it's the last attempt, throw the error
-                  if (attempt === 5) {
+                  // Don't retry on specific AI service errors that won't recover
+                  if (error.message?.includes('model_overloaded') ||
+                      error.message?.includes('rate_limited') ||
+                      error.message?.includes('invalid_request')) {
+                    console.log(`[AI_GENERATION] Non-retryable error detected, failing fast`);
                     throw lastError;
                   }
 
-                  // Wait before retry (exponential backoff)
-                  await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+                  // If it's the last attempt, throw the error
+                  if (attempt === maxAttempts) {
+                    throw lastError;
+                  }
+
+                  // Exponential backoff with jitter to prevent thundering herd
+                  const delay = Math.min(baseDelayMs * Math.pow(2, attempt - 1), 15000); // Max 15 seconds
+                  const jitter = Math.random() * 1000; // Add up to 1 second jitter
+                  const totalDelay = delay + jitter;
+
+                  console.log(`[AI_GENERATION] Retrying in ${Math.round(totalDelay)}ms`);
+                  await new Promise(resolve => setTimeout(resolve, totalDelay));
                 }
               }
 
@@ -330,8 +346,23 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // Enhanced partial success handling
+      const minImagesRequired = Math.ceil(normalizedPreferences.campaign_size * 0.4); // 40% success rate minimum
+      const successRate = (generatedImages.length / imagePrompts.length) * 100;
+
+      console.log(`[CAMPAIGN_GENERATION] Generated ${generatedImages.length}/${imagePrompts.length} images (${successRate.toFixed(1)}% success rate)`);
+
       if (generatedImages.length === 0) {
-        throw new Error('Failed to generate any images');
+        throw new Error('Failed to generate any images - AI service may be unavailable');
+      }
+
+      if (generatedImages.length < minImagesRequired) {
+        throw new Error(`Campaign partially failed: Generated only ${generatedImages.length}/${imagePrompts.length} images. Minimum ${minImagesRequired} required for campaign success.`);
+      }
+
+      // Log successful partial generation
+      if (generatedImages.length < imagePrompts.length) {
+        console.log(`[CAMPAIGN_GENERATION] Partial success: Generated ${generatedImages.length}/${imagePrompts.length} images. Proceeding with campaign creation.`);
       }
 
       // Create ZIP file
@@ -398,7 +429,11 @@ export async function POST(request: NextRequest) {
         totalImages: generatedImages.length,
         successfulImages: generatedImages.length,
         requestedImages: imagePrompts.length,
-        generationTimeSeconds: generationTime
+        generationTimeSeconds: generationTime,
+        // Enhanced response with success metrics
+        successRate: Math.round((generatedImages.length / imagePrompts.length) * 100),
+        isPartialSuccess: generatedImages.length < imagePrompts.length,
+        failedImages: imagePrompts.length - generatedImages.length
       });
 
     } catch (generationError: any) {
@@ -456,8 +491,23 @@ export async function POST(request: NextRequest) {
 
     if (error.message.includes('Failed to generate any images')) {
       return NextResponse.json(
-        { error: 'AI image generation failed. Please try again with different preferences.' },
+        {
+          error: 'AI image generation service is currently unavailable. Please try again in a few minutes.',
+          code: 'AI_SERVICE_UNAVAILABLE',
+          retryAfter: 300 // 5 minutes
+        },
         { status: 503 }
+      );
+    }
+
+    if (error.message.includes('Campaign partially failed')) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: 'PARTIAL_GENERATION_FAILED',
+          suggestion: 'Try reducing the campaign size or try again when AI service load is lower'
+        },
+        { status: 422 }
       );
     }
 

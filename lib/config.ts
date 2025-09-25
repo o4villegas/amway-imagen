@@ -5,9 +5,9 @@
 
 // Campaign generation settings
 export const CAMPAIGN_CONFIG = {
-  // Image generation - FLUX-1-schnell optimized
-  MAX_CONCURRENT_GENERATIONS: 3, // Optimized for better throughput
-  AI_GENERATION_STEPS: 6, // Enhanced quality for production
+  // Image generation - FLUX-1-schnell optimized for production reliability
+  MAX_CONCURRENT_GENERATIONS: 2, // Reduced to prevent AI service overload
+  AI_GENERATION_STEPS: 4, // Faster generation with acceptable quality
   AI_GUIDANCE_SCALE: 0.0, // FLUX-1-schnell works better with 0 guidance
 
   // Campaign sizes - Limited for better performance and success rates
