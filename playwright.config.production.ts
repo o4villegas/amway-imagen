@@ -1,29 +1,25 @@
 import { defineConfig, devices } from '@playwright/test';
 
-/**
- * Production testing configuration - no local server needed
- */
 export default defineConfig({
   testDir: './tests',
-  fullyParallel: true,
-  forbidOnly: false,
-  retries: 0,
-  workers: 1, // Run one at a time for production testing
-  reporter: 'html',
+  fullyParallel: false,
+  forbidOnly: true,
+  retries: 1,
+  workers: 1,
+  reporter: [['html'], ['list']],
+  timeout: 120000,
   use: {
     baseURL: 'https://amway-imagen.lando555.workers.dev',
-    headless: false, // Always run in headed mode for live testing
-    trace: 'on',
-    actionTimeout: 45000, // Increase timeout for production
-    navigationTimeout: 45000,
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    actionTimeout: 30000,
+    navigationTimeout: 30000,
   },
-
   projects: [
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-
-  // No webServer - testing against live production
 });

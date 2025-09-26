@@ -29,11 +29,11 @@ export const CAMPAIGN_CONFIG = {
 // Image format specifications
 // Using AI-friendly dimensions (multiples of 64) for better generation
 export const IMAGE_FORMATS = {
-  facebook_post: { width: 1200, height: 630, label: 'Facebook Post' },
+  facebook_post: { width: 1200, height: 632, label: 'Facebook Post' },
   instagram_post: { width: 1024, height: 1024, label: 'Instagram Post' },
   pinterest: { width: 1024, height: 1536, label: 'Pinterest Pin' },
   snapchat_ad: { width: 1080, height: 1920, label: 'Snapchat Ad' },
-  linkedin_post: { width: 1200, height: 627, label: 'LinkedIn Post' }
+  linkedin_post: { width: 1200, height: 632, label: 'LinkedIn Post' }
 } as const;
 
 // Database pagination and limits
