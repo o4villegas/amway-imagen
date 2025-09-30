@@ -92,6 +92,7 @@ function NewCampaignContent() {
   const [scrapingStage, setScrapingStage] = useState(1);
   const [scrapingError, setScrapingError] = useState('');
   const [currentUrl, setCurrentUrl] = useState('');
+  const [packagingError, setPackagingError] = useState<string | null>(null);
 
   // Check for URL parameter from landing page
   useEffect(() => {
@@ -195,7 +196,7 @@ function NewCampaignContent() {
       setStep('download');
     } catch (error) {
       console.error('Packaging failed:', error);
-      // TODO: Add error handling UI
+      setPackagingError(error instanceof Error ? error.message : 'Failed to create campaign package');
     }
   };
 
@@ -330,6 +331,11 @@ function NewCampaignContent() {
               <ImageGallery
                 campaignId={generationResult.campaignId}
                 onComplete={handleApprovalComplete}
+                packagingError={packagingError}
+                onRetryPackaging={() => {
+                  setPackagingError(null);
+                  handleApprovalComplete();
+                }}
               />
             </ErrorBoundary>
           )}

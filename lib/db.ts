@@ -407,6 +407,72 @@ export class DatabaseManager {
     }
   }
 
+  async cleanupFailedCampaigns(
+    storage?: R2Bucket,
+    olderThanHours: number = 24
+  ): Promise<{ deleted: number; imagesDeleted: number }> {
+    try {
+      const cutoffDate = new Date(Date.now() - olderThanHours * 60 * 60 * 1000).toISOString();
+
+      // Find all records to delete
+      const toDelete = await this.db.prepare(`
+        SELECT c.id as campaign_id, gi.id as image_id, gi.r2_path
+        FROM campaigns c
+        LEFT JOIN generated_images gi ON c.id = gi.campaign_id
+        WHERE c.status = 'failed' AND c.created_at < ?
+      `).bind(cutoffDate).all();
+
+      console.log(`[CLEANUP] Found ${toDelete.results.length} records to clean`);
+
+      // Delete R2 images if storage provided
+      let imagesDeleted = 0;
+      if (storage) {
+        const r2Paths = toDelete.results
+          .map((row: any) => row.r2_path)
+          .filter(path => path != null);
+
+        for (const path of r2Paths) {
+          try {
+            await storage.delete(path as string);
+            imagesDeleted++;
+            console.log(`[CLEANUP] Deleted R2: ${path}`);
+          } catch (error) {
+            console.error(`[CLEANUP] Failed to delete R2: ${path}`, error);
+          }
+        }
+      }
+
+      // Get unique campaign IDs
+      const campaignIds = [...new Set(toDelete.results.map((row: any) => row.campaign_id))];
+
+      if (campaignIds.length === 0) {
+        return { deleted: 0, imagesDeleted };
+      }
+
+      // Delete generated_images first (foreign key)
+      await this.db.prepare(`
+        DELETE FROM generated_images
+        WHERE campaign_id IN (
+          SELECT id FROM campaigns
+          WHERE status = 'failed' AND created_at < ?
+        )
+      `).bind(cutoffDate).run();
+
+      // Delete campaigns
+      const deleteResult = await this.db.prepare(`
+        DELETE FROM campaigns WHERE status = 'failed' AND created_at < ?
+      `).bind(cutoffDate).run();
+
+      const deleted = deleteResult.meta.changes || 0;
+      console.log(`[CLEANUP] Deleted ${deleted} campaigns, ${imagesDeleted} R2 images`);
+
+      return { deleted, imagesDeleted };
+    } catch (error) {
+      console.error('[CLEANUP] Error during cleanup:', error);
+      throw error;
+    }
+  }
+
   // Caching methods for Claude API scraping
 
   async getCachedProduct(url: string): Promise<StoredProduct | null> {

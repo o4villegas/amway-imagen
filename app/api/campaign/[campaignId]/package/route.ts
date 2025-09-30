@@ -105,7 +105,7 @@ export async function POST(
         brand: product.brand || 'Amway',
         category: product.category
       },
-      preferences: {
+      preferences: campaign.preferences || {
         campaign_type: campaign.campaign_type,
         brand_style: campaign.brand_style,
         campaign_size: campaign.campaign_size

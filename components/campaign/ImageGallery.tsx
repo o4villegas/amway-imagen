@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Download, Eye, Maximize2, Save } from 'lucide-react';
+import { Download, Eye, Maximize2, Save, AlertCircle, RotateCcw } from 'lucide-react';
 import { devLog } from '@/lib/env-utils';
 
 interface GeneratedImage {
@@ -25,9 +25,11 @@ interface ImageGalleryProps {
   campaignId: number;
   onSelectionChange?: (selectedCount: number) => void;
   onComplete?: () => void;
+  packagingError?: string | null;
+  onRetryPackaging?: () => void;
 }
 
-export function ImageGallery({ campaignId, onSelectionChange, onComplete }: ImageGalleryProps) {
+export function ImageGallery({ campaignId, onSelectionChange, onComplete, packagingError, onRetryPackaging }: ImageGalleryProps) {
   const [images, setImages] = useState<GeneratedImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedImages, setSelectedImages] = useState<Set<number>>(new Set());
@@ -235,6 +237,29 @@ export function ImageGallery({ campaignId, onSelectionChange, onComplete }: Imag
           )}
         </div>
       </div>
+
+      {packagingError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h4 className="font-semibold text-red-900 mb-1">Packaging Failed</h4>
+              <p className="text-sm text-red-800 mb-3">{packagingError}</p>
+              {onRetryPackaging && (
+                <Button
+                  onClick={onRetryPackaging}
+                  variant="outline"
+                  size="sm"
+                  className="border-red-300 text-red-700 hover:bg-red-100"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Retry Packaging
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <Tabs defaultValue={Object.keys(groupedImages)[0]} className="w-full">
         <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${Object.keys(groupedImages).length}, 1fr)` }}>
