@@ -14,7 +14,7 @@ import { ProgressIndicator } from '@/components/campaign/ProgressIndicator';
 import { StoredProduct } from '@/lib/db';
 import { ErrorBoundary, CampaignErrorFallback } from '@/components/ErrorBoundary';
 
-export type CampaignStep = 'url-input' | 'processing' | 'generate' | 'download';
+export type CampaignStep = 'url-input' | 'processing' | 'configure' | 'generate' | 'preview' | 'download';
 
 export interface CampaignPreferences {
   campaign_type: 'lifestyle'; // Fixed to lifestyle with benefit-focused approach
@@ -23,6 +23,15 @@ export interface CampaignPreferences {
   text_overlay: 'minimal' | 'moderate' | 'heavy';
   campaign_size: 5;
   image_formats: Array<'facebook_post' | 'instagram_post' | 'pinterest' | 'snapchat_ad' | 'linkedin_post'>;
+  // Phase 1c - Outcome-focused customization
+  moodProfile: 'energetic' | 'serene' | 'confident' | 'aspirational' | 'professional';
+  lightingType: 'natural' | 'studio' | 'dramatic' | 'soft' | 'golden_hour';
+  compositionStyle: 'centered' | 'rule_of_thirds' | 'dynamic' | 'minimalist';
+  colorMood: 'warm' | 'cool' | 'vibrant' | 'muted' | 'high_contrast';
+  visualFocus: 'outcome_lifestyle' | 'outcome_environmental' | 'outcome_conceptual' | 'outcome_natural' | 'mixed_outcomes';
+  sceneType: 'individual_focus' | 'family_moment' | 'lifestyle_action' | 'environmental_concept';
+  environmentType: 'indoor_home' | 'outdoor_nature' | 'wellness_space' | 'urban_setting';
+  timeOfDay: 'morning' | 'midday' | 'afternoon' | 'evening' | 'golden_hour';
 }
 
 // Legacy interface for backward compatibility validation (internal use)
@@ -37,8 +46,8 @@ export interface CampaignPreferencesLegacy {
 
 export interface GenerationResult {
   campaignId: number;
-  downloadUrl: string;
-  expiresAt: string;
+  downloadUrl?: string;
+  expiresAt?: string;
   totalImages: number;
 }
 
@@ -54,7 +63,21 @@ const getSmartDefaults = (product?: StoredProduct): CampaignPreferences => {
     color_scheme: 'product_inspired', // More dynamic than static amway_brand
     text_overlay: 'moderate',
     campaign_size: 5,
-    image_formats: ['facebook_post', 'instagram_post', 'pinterest', 'snapchat_ad', 'linkedin_post']
+    image_formats: ['facebook_post', 'instagram_post', 'pinterest', 'snapchat_ad', 'linkedin_post'],
+    // Phase 1c - Category-specific outcome defaults
+    moodProfile: category === 'nutrition' ? 'energetic' :
+                 category === 'beauty' ? 'confident' :
+                 category === 'home' ? 'serene' : 'professional',
+    lightingType: category === 'beauty' ? 'soft' : 'natural',
+    compositionStyle: 'rule_of_thirds',
+    colorMood: category === 'nutrition' ? 'vibrant' :
+               category === 'beauty' ? 'warm' : 'warm',
+    visualFocus: 'outcome_lifestyle',
+    sceneType: 'individual_focus',
+    environmentType: category === 'nutrition' ? 'wellness_space' :
+                     category === 'beauty' ? 'indoor_home' :
+                     category === 'home' ? 'indoor_home' : 'indoor_home',
+    timeOfDay: 'morning'
   };
 };
 
@@ -125,8 +148,8 @@ function NewCampaignContent() {
   };
 
   const handleScrapingComplete = () => {
-    // Skip configure step and go directly to generation with smart defaults
-    setStep('generate');
+    // Go to configure step for user customization
+    setStep('configure');
   };
 
   const handleScrapingRetry = () => {
@@ -141,7 +164,39 @@ function NewCampaignContent() {
 
   const handleGenerationComplete = (result: GenerationResult) => {
     setGenerationResult(result);
-    setStep('download');
+    setStep('preview');
+  };
+
+  const handleApprovalComplete = async () => {
+    if (!generationResult) return;
+
+    try {
+      const response = await fetch(`/api/campaign/${generationResult.campaignId}/package`, {
+        method: 'POST'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create campaign package');
+      }
+
+      const { downloadUrl, expiresAt, totalImages } = await response.json() as {
+        downloadUrl: string;
+        expiresAt: string;
+        totalImages: number;
+      };
+
+      setGenerationResult(prev => ({
+        ...prev!,
+        downloadUrl,
+        expiresAt,
+        totalImages
+      }));
+
+      setStep('download');
+    } catch (error) {
+      console.error('Packaging failed:', error);
+      // TODO: Add error handling UI
+    }
   };
 
   const handleStartNewCampaign = () => {
@@ -165,6 +220,7 @@ function NewCampaignContent() {
             width={120}
             height={40}
             className="h-10 w-auto"
+            unoptimized
           />
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -236,6 +292,29 @@ function NewCampaignContent() {
             </div>
           )}
 
+          {step === 'configure' && productInfo && (
+            <div className="p-6">
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                    Customize Your Campaign
+                  </h2>
+                  <p className="text-gray-600">
+                    Fine-tune how your marketing images will look and feel.
+                  </p>
+                </div>
+
+                <ProductPreview product={productInfo} />
+
+                <PreferencesPanel
+                  preferences={preferences}
+                  onChange={setPreferences}
+                  onComplete={handlePreferencesComplete}
+                />
+              </div>
+            </div>
+          )}
+
           {step === 'generate' && productInfo && (
             <ErrorBoundary fallback={CampaignErrorFallback}>
               <GenerationProgress
@@ -246,9 +325,18 @@ function NewCampaignContent() {
             </ErrorBoundary>
           )}
 
-          {step === 'download' && generationResult && (
+          {step === 'preview' && generationResult && (
+            <ErrorBoundary fallback={CampaignErrorFallback}>
+              <ImageGallery
+                campaignId={generationResult.campaignId}
+                onComplete={handleApprovalComplete}
+              />
+            </ErrorBoundary>
+          )}
+
+          {step === 'download' && generationResult && generationResult.downloadUrl && (
             <DownloadManager
-              result={generationResult}
+              result={generationResult as GenerationResult & { downloadUrl: string; expiresAt: string }}
               onNewCampaign={handleStartNewCampaign}
             />
           )}

@@ -16,6 +16,11 @@ export function DownloadManager({ result, onNewCampaign }: DownloadManagerProps)
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const handleDownload = async () => {
+    if (!result.downloadUrl) {
+      setDownloadError('Download URL not available');
+      return;
+    }
+
     setIsDownloading(true);
     setDownloadError(null);
 
@@ -63,6 +68,7 @@ export function DownloadManager({ result, onNewCampaign }: DownloadManagerProps)
   };
 
   const copyDownloadLink = () => {
+    if (!result.downloadUrl) return;
     const fullUrl = `${window.location.origin}${result.downloadUrl}`;
     navigator.clipboard.writeText(fullUrl);
   };
@@ -82,6 +88,7 @@ export function DownloadManager({ result, onNewCampaign }: DownloadManagerProps)
   };
 
   const isExpired = () => {
+    if (!result.expiresAt) return false;
     const expiry = new Date(result.expiresAt);
     return new Date() > expiry;
   };
@@ -115,10 +122,12 @@ export function DownloadManager({ result, onNewCampaign }: DownloadManagerProps)
                   <Download className="h-4 w-4" />
                   <span>{result.totalImages} images</span>
                 </div>
-                <div className="flex items-center space-x-1">
-                  <Clock className="h-4 w-4" />
-                  <span>Expires in {formatExpiryTime(result.expiresAt)}</span>
-                </div>
+                {result.expiresAt && (
+                  <div className="flex items-center space-x-1">
+                    <Clock className="h-4 w-4" />
+                    <span>Expires in {formatExpiryTime(result.expiresAt)}</span>
+                  </div>
+                )}
               </div>
 
               {!isExpired() ? (

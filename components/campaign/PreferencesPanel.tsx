@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CampaignPreferences } from '@/app/campaign/new/page';
-import { Settings, Palette, Layout, Camera } from 'lucide-react';
+import { Settings, Palette, Layout, Camera, Target, Heart, MapPin, Sun } from 'lucide-react';
 
 interface PreferencesPanelProps {
   preferences: CampaignPreferences;
@@ -157,6 +157,224 @@ export function PreferencesPanel({ preferences, onChange, onComplete }: Preferen
                 <SelectItem value="amway_brand">Amway Brand Colors</SelectItem>
                 <SelectItem value="product_inspired">Product-Inspired Colors</SelectItem>
                 <SelectItem value="custom">Custom Palette</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        {/* Mood Profile */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center text-base">
+              <Heart className="h-4 w-4 mr-2" />
+              Mood & Feeling
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select
+              value={preferences.moodProfile}
+              onValueChange={(value) => updatePreference('moodProfile', value as any)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="energetic">Energetic - Active and vibrant</SelectItem>
+                <SelectItem value="serene">Serene - Calm and peaceful</SelectItem>
+                <SelectItem value="confident">Confident - Bold and empowering</SelectItem>
+                <SelectItem value="aspirational">Aspirational - Inspiring and uplifting</SelectItem>
+                <SelectItem value="professional">Professional - Polished and trustworthy</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        {/* Outcome Visualization */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center text-base">
+              <Target className="h-4 w-4 mr-2" />
+              Outcome Focus
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>Policy Note:</strong> Images show benefit outcomes, never products directly.
+              </p>
+            </div>
+            <Select
+              value={preferences.visualFocus}
+              onValueChange={(value) => updatePreference('visualFocus', value as any)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="outcome_lifestyle">Lifestyle - People experiencing results</SelectItem>
+                <SelectItem value="outcome_environmental">Environmental - Spaces showing outcomes</SelectItem>
+                <SelectItem value="outcome_conceptual">Conceptual - Abstract visualizations</SelectItem>
+                <SelectItem value="outcome_natural">Natural - Nature and wellness metaphors</SelectItem>
+                <SelectItem value="mixed_outcomes">Mixed - Variety of outcome approaches</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        {/* Scene Type */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center text-base">
+              <Camera className="h-4 w-4 mr-2" />
+              Scene Type
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select
+              value={preferences.sceneType}
+              onValueChange={(value) => updatePreference('sceneType', value as any)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="individual_focus">Individual Focus - Single person</SelectItem>
+                <SelectItem value="family_moment">Family Moment - Multiple people</SelectItem>
+                <SelectItem value="lifestyle_action">Lifestyle Action - Activities and movement</SelectItem>
+                <SelectItem value="environmental_concept">Environmental Concept - Settings only</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        {/* Lighting Type */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center text-base">
+              <Sun className="h-4 w-4 mr-2" />
+              Lighting Style
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select
+              value={preferences.lightingType}
+              onValueChange={(value) => updatePreference('lightingType', value as any)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="natural">Natural - Soft daylight</SelectItem>
+                <SelectItem value="studio">Studio - Controlled professional</SelectItem>
+                <SelectItem value="dramatic">Dramatic - High contrast</SelectItem>
+                <SelectItem value="soft">Soft - Diffused and gentle</SelectItem>
+                <SelectItem value="golden_hour">Golden Hour - Warm sunset glow</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        {/* Composition Style */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center text-base">
+              <Layout className="h-4 w-4 mr-2" />
+              Composition
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select
+              value={preferences.compositionStyle}
+              onValueChange={(value) => updatePreference('compositionStyle', value as any)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="centered">Centered - Balanced and symmetric</SelectItem>
+                <SelectItem value="rule_of_thirds">Rule of Thirds - Professional balance</SelectItem>
+                <SelectItem value="dynamic">Dynamic - Diagonal and movement</SelectItem>
+                <SelectItem value="minimalist">Minimalist - Clean and spacious</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        {/* Color Mood */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center text-base">
+              <Palette className="h-4 w-4 mr-2" />
+              Color Mood
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select
+              value={preferences.colorMood}
+              onValueChange={(value) => updatePreference('colorMood', value as any)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="warm">Warm - Inviting and cozy</SelectItem>
+                <SelectItem value="cool">Cool - Fresh and calming</SelectItem>
+                <SelectItem value="vibrant">Vibrant - Bold and energetic</SelectItem>
+                <SelectItem value="muted">Muted - Subtle and sophisticated</SelectItem>
+                <SelectItem value="high_contrast">High Contrast - Bold and striking</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        {/* Environment Type */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center text-base">
+              <MapPin className="h-4 w-4 mr-2" />
+              Environment
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select
+              value={preferences.environmentType}
+              onValueChange={(value) => updatePreference('environmentType', value as any)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="indoor_home">Indoor Home - Comfortable living spaces</SelectItem>
+                <SelectItem value="outdoor_nature">Outdoor Nature - Natural settings</SelectItem>
+                <SelectItem value="wellness_space">Wellness Space - Fitness and health</SelectItem>
+                <SelectItem value="urban_setting">Urban Setting - City and modern</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        {/* Time of Day */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center text-base">
+              <Sun className="h-4 w-4 mr-2" />
+              Time of Day
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select
+              value={preferences.timeOfDay}
+              onValueChange={(value) => updatePreference('timeOfDay', value as any)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="morning">Morning - Fresh start energy</SelectItem>
+                <SelectItem value="midday">Midday - Bright and active</SelectItem>
+                <SelectItem value="afternoon">Afternoon - Productive flow</SelectItem>
+                <SelectItem value="evening">Evening - Relaxed and calm</SelectItem>
+                <SelectItem value="golden_hour">Golden Hour - Warm and magical</SelectItem>
               </SelectContent>
             </Select>
           </CardContent>

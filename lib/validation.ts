@@ -41,7 +41,16 @@ export const campaignPreferencesSchema = z.object({
   campaign_size: z.literal(5),
   image_formats: z.array(z.enum(['facebook_post', 'instagram_post', 'pinterest', 'snapchat_ad', 'linkedin_post']))
     .min(1, 'At least one image format is required')
-    .max(5, 'Maximum 5 image formats allowed')
+    .max(5, 'Maximum 5 image formats allowed'),
+  // Phase 1c - Outcome-focused customization (optional for backward compatibility)
+  moodProfile: z.enum(['energetic', 'serene', 'confident', 'aspirational', 'professional']).optional().default('professional'),
+  lightingType: z.enum(['natural', 'studio', 'dramatic', 'soft', 'golden_hour']).optional().default('natural'),
+  compositionStyle: z.enum(['centered', 'rule_of_thirds', 'dynamic', 'minimalist']).optional().default('rule_of_thirds'),
+  colorMood: z.enum(['warm', 'cool', 'vibrant', 'muted', 'high_contrast']).optional().default('warm'),
+  visualFocus: z.enum(['outcome_lifestyle', 'outcome_environmental', 'outcome_conceptual', 'outcome_natural', 'mixed_outcomes']).optional().default('outcome_lifestyle'),
+  sceneType: z.enum(['individual_focus', 'family_moment', 'lifestyle_action', 'environmental_concept']).optional().default('individual_focus'),
+  environmentType: z.enum(['indoor_home', 'outdoor_nature', 'wellness_space', 'urban_setting']).optional().default('indoor_home'),
+  timeOfDay: z.enum(['morning', 'midday', 'afternoon', 'evening', 'golden_hour']).optional().default('morning')
 });
 
 // Backward compatible campaign preferences validation - allows legacy sizes but normalizes to 5
@@ -54,7 +63,16 @@ export const campaignPreferencesSchemaLegacy = z.object({
     .transform(val => 5 as const), // Always normalize to 5 images
   image_formats: z.array(z.enum(['facebook_post', 'instagram_post', 'pinterest', 'snapchat_ad', 'linkedin_post']))
     .min(1, 'At least one image format is required')
-    .max(5, 'Maximum 5 image formats allowed')
+    .max(5, 'Maximum 5 image formats allowed'),
+  // Phase 1c - Outcome-focused customization (optional for backward compatibility)
+  moodProfile: z.enum(['energetic', 'serene', 'confident', 'aspirational', 'professional']).optional().default('professional'),
+  lightingType: z.enum(['natural', 'studio', 'dramatic', 'soft', 'golden_hour']).optional().default('natural'),
+  compositionStyle: z.enum(['centered', 'rule_of_thirds', 'dynamic', 'minimalist']).optional().default('rule_of_thirds'),
+  colorMood: z.enum(['warm', 'cool', 'vibrant', 'muted', 'high_contrast']).optional().default('warm'),
+  visualFocus: z.enum(['outcome_lifestyle', 'outcome_environmental', 'outcome_conceptual', 'outcome_natural', 'mixed_outcomes']).optional().default('outcome_lifestyle'),
+  sceneType: z.enum(['individual_focus', 'family_moment', 'lifestyle_action', 'environmental_concept']).optional().default('individual_focus'),
+  environmentType: z.enum(['indoor_home', 'outdoor_nature', 'wellness_space', 'urban_setting']).optional().default('indoor_home'),
+  timeOfDay: z.enum(['morning', 'midday', 'afternoon', 'evening', 'golden_hour']).optional().default('morning')
 });
 
 // Campaign generation request validation

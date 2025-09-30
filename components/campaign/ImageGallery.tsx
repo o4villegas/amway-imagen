@@ -18,6 +18,7 @@ interface GeneratedImage {
   height: number;
   selected: boolean;
   r2_path: string;
+  marketing_copy?: string; // JSON string of MarketingCopy object
 }
 
 interface ImageGalleryProps {
@@ -32,6 +33,7 @@ export function ImageGallery({ campaignId, onSelectionChange, onComplete }: Imag
   const [selectedImages, setSelectedImages] = useState<Set<number>>(new Set());
   const [previewImage, setPreviewImage] = useState<GeneratedImage | null>(null);
   const [groupByFormat, setGroupByFormat] = useState(true);
+  const [isPackaging, setIsPackaging] = useState(false);
 
   const fetchImages = useCallback(async () => {
     try {
@@ -162,6 +164,18 @@ export function ImageGallery({ campaignId, onSelectionChange, onComplete }: Imag
     }
   };
 
+  const handleCreatePackage = async () => {
+    if (selectedImages.size === 0 || !onComplete) return;
+
+    setIsPackaging(true);
+    try {
+      await onComplete();
+    } catch (error) {
+      devLog.error('Error creating package:', error);
+      setIsPackaging(false);
+    }
+  };
+
   const formatDisplayName = (format: string) => {
     return format.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
@@ -204,14 +218,19 @@ export function ImageGallery({ campaignId, onSelectionChange, onComplete }: Imag
         </div>
         <div className="flex gap-2">
           {selectedImages.size > 0 && (
-            <Button onClick={downloadSelectedImages} className="gap-2">
+            <Button onClick={downloadSelectedImages} variant="outline" className="gap-2">
               <Save className="h-4 w-4" />
               Save Selected ({selectedImages.size})
             </Button>
           )}
           {onComplete && (
-            <Button onClick={onComplete}>
-              Continue to Download
+            <Button
+              onClick={handleCreatePackage}
+              disabled={selectedImages.size === 0 || isPackaging}
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              {isPackaging ? 'Creating Package...' : 'Create Download Package'}
             </Button>
           )}
         </div>
@@ -238,6 +257,7 @@ export function ImageGallery({ campaignId, onSelectionChange, onComplete }: Imag
                       fill
                       className="object-cover"
                       sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      unoptimized
                     />
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity" />
                     
@@ -272,6 +292,18 @@ export function ImageGallery({ campaignId, onSelectionChange, onComplete }: Imag
                   <div className="mt-2 text-sm text-gray-600">
                     <p className="font-medium">{formatDisplayName(image.format)}</p>
                     <p className="text-xs">{formatDimensions(image.width, image.height)}</p>
+                    {image.marketing_copy && (() => {
+                      try {
+                        const copy = JSON.parse(image.marketing_copy);
+                        return (
+                          <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
+                            <p className="text-gray-700 line-clamp-2">{copy.text}</p>
+                          </div>
+                        );
+                      } catch (e) {
+                        return null;
+                      }
+                    })()}
                   </div>
                 </div>
               ))}
@@ -288,13 +320,50 @@ export function ImageGallery({ campaignId, onSelectionChange, onComplete }: Imag
             </DialogTitle>
           </DialogHeader>
           {previewImage && (
-            <div className="relative w-full" style={{ aspectRatio: `${previewImage.width} / ${previewImage.height}` }}>
-              <Image
-                src={`/api/campaign/${campaignId}/images/${previewImage.id}`}
-                alt={`Preview ${previewImage.format}`}
-                fill
-                className="object-contain"
-              />
+            <div className="space-y-4">
+              <div className="relative w-full" style={{ aspectRatio: `${previewImage.width} / ${previewImage.height}` }}>
+                <Image
+                  src={`/api/campaign/${campaignId}/images/${previewImage.id}`}
+                  alt={`Preview ${previewImage.format}`}
+                  fill
+                  className="object-contain"
+                  unoptimized
+                />
+              </div>
+              {previewImage.marketing_copy && (() => {
+                try {
+                  const copy = JSON.parse(previewImage.marketing_copy);
+                  return (
+                    <div className="border-t pt-4">
+                      <h4 className="font-semibold text-sm mb-2">Marketing Copy</h4>
+                      <div className="space-y-3 text-sm">
+                        <div>
+                          <p className="text-gray-700">{copy.text}</p>
+                        </div>
+                        {copy.hashtags && copy.hashtags.length > 0 && (
+                          <div>
+                            <p className="font-medium text-xs text-gray-500 mb-1">Hashtags</p>
+                            <p className="text-blue-600">{copy.hashtags.map((tag: string) => `#${tag}`).join(' ')}</p>
+                          </div>
+                        )}
+                        {copy.callToAction && (
+                          <div>
+                            <p className="font-medium text-xs text-gray-500 mb-1">Call to Action</p>
+                            <p className="text-gray-700">{copy.callToAction}</p>
+                          </div>
+                        )}
+                        {copy.disclaimer && (
+                          <div className="border-t pt-2 mt-2">
+                            <p className="text-xs text-gray-500">{copy.disclaimer}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                } catch (e) {
+                  return null;
+                }
+              })()}
             </div>
           )}
         </DialogContent>

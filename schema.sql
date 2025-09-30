@@ -31,7 +31,8 @@ CREATE TABLE campaigns (
     text_overlay TEXT NOT NULL CHECK (text_overlay IN ('minimal', 'moderate', 'heavy')),
     campaign_size INTEGER NOT NULL CHECK (campaign_size = 5),
     image_formats TEXT NOT NULL, -- JSON array of selected formats
-    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'generating', 'completed', 'failed')),
+    preferences_json TEXT, -- Full preferences object for reproducibility (Phase 1c)
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'generating', 'completed', 'failed', 'awaiting_approval')),
     download_url TEXT,
     expires_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

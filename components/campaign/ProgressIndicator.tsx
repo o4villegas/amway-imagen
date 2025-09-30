@@ -17,8 +17,10 @@ interface StepConfig {
 const STEPS: StepConfig[] = [
   { id: 'url-input', number: 1, label: 'Enter URL', shortLabel: 'URL' },
   { id: 'processing', number: 2, label: 'Processing & Setup', shortLabel: 'Setup' },
-  { id: 'generate', number: 3, label: 'Generate Images', shortLabel: 'Generate' },
-  { id: 'download', number: 4, label: 'Download Campaign', shortLabel: 'Download' }
+  { id: 'configure', number: 3, label: 'Configure Preferences', shortLabel: 'Configure' },
+  { id: 'generate', number: 4, label: 'Generate Images', shortLabel: 'Generate' },
+  { id: 'preview', number: 5, label: 'Preview & Select', shortLabel: 'Preview' },
+  { id: 'download', number: 6, label: 'Download Campaign', shortLabel: 'Download' }
 ];
 
 export function ProgressIndicator({ currentStep }: ProgressIndicatorProps) {

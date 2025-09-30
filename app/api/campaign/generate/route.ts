@@ -146,6 +146,7 @@ export async function POST(request: NextRequest) {
         text_overlay: normalizedPreferences.text_overlay,
         campaign_size: normalizedPreferences.campaign_size,
         image_formats: normalizedPreferences.image_formats,
+        preferences: normalizedPreferences, // Store full preferences for reproducibility
         status: 'generating'
       });
       // Generate prompts
@@ -171,13 +172,11 @@ export async function POST(request: NextRequest) {
         const batchPromises = batch.map(async (prompt, batchIndex) => {
           try {
             // FLUX-1-schnell optimized parameters
+            // IMPORTANT: Cloudflare Workers AI only supports: prompt, steps, seed
+            // Unsupported: width, height, guidance_scale, num_inference_steps
             const aiInput = {
               prompt: String(prompt.text),
-              // FLUX-1-schnell specific parameters
-              num_inference_steps: CAMPAIGN_CONFIG.AI_GENERATION_STEPS,
-              guidance_scale: CAMPAIGN_CONFIG.AI_GUIDANCE_SCALE,
-              width: Number(prompt.width),
-              height: Number(prompt.height),
+              steps: 4, // 1-8 range, 4 is optimal for speed/quality balance
               seed: Math.floor(Math.random() * 1000000) // Random seed for variety
             };
 
@@ -384,38 +383,8 @@ export async function POST(request: NextRequest) {
         usage: 'Created with Amway IBO Image Campaign Generator'
       };
 
-      const zipBuffer = await withTimeout(
-        zipCreator.createCampaignZipWithCopy(generatedImages, metadata, marketingCopyCollection),
-        TIMEOUTS.ZIP_CREATION,
-        'ZIP file creation'
-      );
-
-      // Upload to R2
-      const campaignKey = `campaigns/${campaignId!}_${Date.now()}.zip`;
-      await withTimeout(
-        CAMPAIGN_STORAGE!.put(campaignKey, zipBuffer, {
-        httpMetadata: {
-          contentType: 'application/zip'
-        },
-        customMetadata: {
-          campaignId: campaignId!.toString(),
-          productId: productId.toString(),
-          totalImages: generatedImages.length.toString(),
-          createdAt: Date.now().toString()
-        }
-      }),
-        TIMEOUTS.R2_UPLOAD,
-        'ZIP upload to R2'
-      );
-
-      // Generate download URL (expires based on config)
-      const expiresAt = new Date(
-        Date.now() + CAMPAIGN_CONFIG.DOWNLOAD_EXPIRY_HOURS * 60 * 60 * 1000
-      ).toISOString();
-      const downloadUrl = `/api/campaign/download/${campaignKey}`;
-
-      // Update campaign with success
-      await dbManager.updateCampaignStatus(campaignId!, 'completed', downloadUrl, expiresAt);
+      // Update campaign to awaiting approval (ZIP will be created after user approval)
+      await dbManager.updateCampaignStatus(campaignId!, 'awaiting_approval');
 
       // Update stats
       const generationTime = (Date.now() - startTime) / 1000;
@@ -424,8 +393,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         campaignId: campaignId!,
-        downloadUrl,
-        expiresAt,
+        status: 'awaiting_approval',
         totalImages: generatedImages.length,
         successfulImages: generatedImages.length,
         requestedImages: imagePrompts.length,

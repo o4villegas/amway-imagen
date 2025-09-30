@@ -363,6 +363,158 @@ FORMAT: Social media optimized
   }
 
 
+  // Phase 1c - Outcome-focused scene generation helper methods
+  private generateOutcomeScene(product: StoredProduct, preferences: CampaignPreferences): string {
+    const { visualFocus, sceneType, environmentType, timeOfDay } = preferences;
+
+    switch (visualFocus) {
+      case 'outcome_lifestyle':
+        return this.generateOutcomeLifestyleScene(product, sceneType, environmentType, timeOfDay);
+      case 'outcome_environmental':
+        return this.generateOutcomeEnvironmentalScene(product, environmentType, timeOfDay);
+      case 'outcome_conceptual':
+        return this.generateOutcomeConceptualScene(product, environmentType);
+      case 'outcome_natural':
+        return this.generateOutcomeNaturalScene(product, timeOfDay);
+      case 'mixed_outcomes':
+        // Randomly select from different outcome types for variety
+        const types = ['outcome_lifestyle', 'outcome_environmental', 'outcome_conceptual', 'outcome_natural'];
+        const randomType = types[Math.floor(Math.random() * types.length)];
+        return this.generateOutcomeScene(product, { ...preferences, visualFocus: randomType as any });
+      default:
+        return this.generateOutcomeLifestyleScene(product, sceneType, environmentType, timeOfDay);
+    }
+  }
+
+  private generateOutcomeLifestyleScene(
+    product: StoredProduct,
+    sceneType: CampaignPreferences['sceneType'],
+    environmentType: CampaignPreferences['environmentType'],
+    timeOfDay: CampaignPreferences['timeOfDay']
+  ): string {
+    const benefit = this.extractPrimaryBenefit(product);
+    const environment = this.getEnvironmentDescription(environmentType);
+    const timeDesc = this.getTimeOfDayDescription(timeOfDay);
+
+    const sceneTemplates = {
+      individual_focus: `Single person in ${environment}, ${timeDesc}, ${benefit}, expressing genuine joy and vitality`,
+      family_moment: `Family members together in ${environment}, ${timeDesc}, ${benefit}, sharing warm connection`,
+      lifestyle_action: `Person engaged in active movement in ${environment}, ${timeDesc}, ${benefit}, showing dynamic energy`,
+      environmental_concept: `${environment} setting, ${timeDesc}, visually representing ${benefit} without people`
+    };
+
+    return sceneTemplates[sceneType] || sceneTemplates.individual_focus;
+  }
+
+  private generateOutcomeEnvironmentalScene(
+    product: StoredProduct,
+    environmentType: CampaignPreferences['environmentType'],
+    timeOfDay: CampaignPreferences['timeOfDay']
+  ): string {
+    const benefit = this.extractPrimaryBenefit(product);
+    const environment = this.getEnvironmentDescription(environmentType);
+    const timeDesc = this.getTimeOfDayDescription(timeOfDay);
+
+    return `Beautiful ${environment}, ${timeDesc}, pristine and inviting space that embodies ${benefit}, professional real estate photography style`;
+  }
+
+  private generateOutcomeConceptualScene(
+    product: StoredProduct,
+    environmentType: CampaignPreferences['environmentType']
+  ): string {
+    const category = (product.category || 'wellness').toLowerCase();
+    const environment = this.getEnvironmentDescription(environmentType);
+
+    const conceptTemplates: Record<string, string> = {
+      nutrition: `Abstract composition in ${environment} with fresh fruits, vegetables, and healthy ingredients artfully arranged, symbolizing nutritional wellness`,
+      beauty: `Conceptual beauty imagery in ${environment} with soft fabrics, natural elements, and gentle lighting, representing radiance and confidence`,
+      home: `Clean minimalist composition in ${environment} showing organized harmonious spaces with natural light, representing fresh living`,
+      wellness: `Serene conceptual scene in ${environment} with natural elements, water, plants, representing balance and vitality`
+    };
+
+    return conceptTemplates[category] || conceptTemplates.wellness;
+  }
+
+  private generateOutcomeNaturalScene(
+    product: StoredProduct,
+    timeOfDay: CampaignPreferences['timeOfDay']
+  ): string {
+    const benefit = this.extractPrimaryBenefit(product);
+    const timeDesc = this.getTimeOfDayDescription(timeOfDay);
+
+    return `Natural landscape, ${timeDesc}, pristine outdoor environment symbolizing ${benefit}, nature documentary photography style`;
+  }
+
+  private getMoodFromProfile(moodProfile: CampaignPreferences['moodProfile']): string {
+    const moodDescriptors = {
+      energetic: 'dynamic, vibrant, active, enthusiastic, full of life',
+      serene: 'peaceful, calm, tranquil, balanced, harmonious',
+      confident: 'self-assured, empowered, strong, accomplished, radiant',
+      aspirational: 'inspiring, uplifting, transformative, motivational, goal-oriented',
+      professional: 'polished, trustworthy, authoritative, competent, refined'
+    };
+
+    return moodDescriptors[moodProfile] || moodDescriptors.professional;
+  }
+
+  private getLightingDescription(lightingType: CampaignPreferences['lightingType']): string {
+    const lightingDescriptions = {
+      natural: 'soft natural daylight, gentle ambient lighting, organic brightness',
+      studio: 'controlled professional lighting, even illumination, commercial photography lighting',
+      dramatic: 'high contrast lighting, strong shadows, dynamic light and shadow interplay',
+      soft: 'diffused gentle lighting, minimal shadows, flattering soft illumination',
+      golden_hour: 'warm golden hour glow, magical sunset/sunrise light, soft warm tones'
+    };
+
+    return lightingDescriptions[lightingType] || lightingDescriptions.natural;
+  }
+
+  private getCompositionDescription(compositionStyle: CampaignPreferences['compositionStyle']): string {
+    const compositionDescriptions = {
+      centered: 'centered symmetrical composition, balanced framing, formal arrangement',
+      rule_of_thirds: 'rule of thirds composition, professional balance, dynamic positioning',
+      dynamic: 'dynamic diagonal composition, movement and energy, asymmetrical balance',
+      minimalist: 'minimalist clean composition, negative space, simple elegant framing'
+    };
+
+    return compositionDescriptions[compositionStyle] || compositionDescriptions.rule_of_thirds;
+  }
+
+  private getColorMoodDescription(colorMood: CampaignPreferences['colorMood']): string {
+    const colorDescriptions = {
+      warm: 'warm inviting color palette, cozy tones, welcoming hues',
+      cool: 'cool fresh color palette, calming blues and greens, refreshing tones',
+      vibrant: 'vibrant bold colors, saturated hues, energetic color palette',
+      muted: 'muted sophisticated colors, subtle tones, refined color scheme',
+      high_contrast: 'high contrast colors, bold color differences, striking visual impact'
+    };
+
+    return colorDescriptions[colorMood] || colorDescriptions.warm;
+  }
+
+  private getEnvironmentDescription(environmentType: CampaignPreferences['environmentType']): string {
+    const environmentDescriptions = {
+      indoor_home: 'modern comfortable home interior',
+      outdoor_nature: 'natural outdoor setting with greenery',
+      wellness_space: 'bright wellness center or fitness environment',
+      urban_setting: 'contemporary urban environment'
+    };
+
+    return environmentDescriptions[environmentType] || environmentDescriptions.indoor_home;
+  }
+
+  private getTimeOfDayDescription(timeOfDay: CampaignPreferences['timeOfDay']): string {
+    const timeDescriptions = {
+      morning: 'fresh morning light, energizing dawn atmosphere',
+      midday: 'bright midday illumination, full daylight',
+      afternoon: 'warm afternoon light, productive daytime setting',
+      evening: 'soft evening ambiance, relaxed twilight atmosphere',
+      golden_hour: 'magical golden hour glow, warm sunset/sunrise light'
+    };
+
+    return timeDescriptions[timeOfDay] || timeDescriptions.morning;
+  }
+
   private generateBasePrompt(
     product: StoredProduct,
     preferences: CampaignPreferences,
@@ -371,15 +523,16 @@ FORMAT: Social media optimized
     // Sanitize product data first
     const safeProduct = sanitizeProductData(product) as StoredProduct;
 
-    // Generate description-based prompt per specification
-    const scene = this.generateSceneDescription(safeProduct, preferences);
-    const mood = this.generateMoodFromBenefits(safeProduct);
-    const visualStyle = this.generateVisualStyle(preferences.brand_style);
-    const lighting = STYLE_MODIFIERS[preferences.brand_style].lighting;
+    // Phase 1c - Use new outcome-focused scene generation
+    const scene = this.generateOutcomeScene(safeProduct, preferences);
+    const mood = this.getMoodFromProfile(preferences.moodProfile);
+    const lighting = this.getLightingDescription(preferences.lightingType);
+    const composition = this.getCompositionDescription(preferences.compositionStyle);
+    const colorMood = this.getColorMoodDescription(preferences.colorMood);
     const formatSpec = this.getFormatSpecification(format);
     const primaryBenefit = this.extractPrimaryBenefit(safeProduct);
 
-    // Build description-based prompt structure as per prompt_examples.md
+    // Build outcome-focused prompt structure with Phase 1c enhancements
     const rawPrompt = `
 Professional lifestyle photography for ${safeProduct.category || 'wellness'} campaign.
 
@@ -387,7 +540,7 @@ SCENE: ${scene}
 
 MOOD & FEELING: ${mood}
 
-VISUAL STYLE: ${visualStyle}, ${lighting}
+VISUAL STYLE: ${composition}, ${lighting}, ${colorMood}
 
 NO PRODUCTS VISIBLE. Focus entirely on the outcome: ${primaryBenefit}
 

@@ -45,7 +45,8 @@ export async function GET(
         height: img.height,
         selected: img.selected,
         r2_path: img.r2_path,
-        generated_at: img.generated_at
+        generated_at: img.generated_at,
+        marketing_copy: img.marketing_copy // Include marketing copy for display
       }))
     });
 

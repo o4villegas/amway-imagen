@@ -128,8 +128,8 @@ export class MarketingCopyGenerator {
       ...options
     };
 
-    // Generate the main copy text
-    const mainText = this.generateMainText(product, styleApproach, copyOptions, config);
+    // Generate the main copy text with Phase 1c preferences
+    const mainText = this.generateMainText(product, styleApproach, copyOptions, config, preferences);
 
     // Generate hashtags
     const hashtags = copyOptions.includeHashtags
@@ -188,6 +188,35 @@ export class MarketingCopyGenerator {
     return mapping[format as keyof typeof mapping] || 'facebook';
   }
 
+  // Phase 1c - Helper methods to adjust copy based on new preferences
+  private getVisualFocusCopyAdjustment(visualFocus?: string): string {
+    if (!visualFocus) return '';
+
+    const adjustments: Record<string, string> = {
+      outcome_lifestyle: 'Experience the transformation in your everyday life.',
+      outcome_environmental: 'See the results in the spaces around you.',
+      outcome_conceptual: 'Imagine the possibilities for your wellness journey.',
+      outcome_natural: 'Feel the natural difference in every aspect of your life.',
+      mixed_outcomes: 'Discover your path to better wellness.'
+    };
+
+    return adjustments[visualFocus] || '';
+  }
+
+  private getMoodAdjustment(moodProfile?: string): string {
+    if (!moodProfile) return '';
+
+    const adjustments: Record<string, string> = {
+      energetic: 'Feel the energy and vitality!',
+      serene: 'Find your perfect balance and peace.',
+      confident: 'Step into your confident, radiant self.',
+      aspirational: 'Unlock your full potential today.',
+      professional: 'Trust in proven quality and results.'
+    };
+
+    return adjustments[moodProfile] || '';
+  }
+
   /**
    * Generates the main marketing text
    */
@@ -195,7 +224,8 @@ export class MarketingCopyGenerator {
     product: StoredProduct,
     styleApproach: typeof MarketingCopyGenerator.STYLE_APPROACHES[keyof typeof MarketingCopyGenerator.STYLE_APPROACHES],
     options: CopyGenerationOptions,
-    config: typeof MarketingCopyGenerator.PLATFORM_SPECS[keyof typeof MarketingCopyGenerator.PLATFORM_SPECS]
+    config: typeof MarketingCopyGenerator.PLATFORM_SPECS[keyof typeof MarketingCopyGenerator.PLATFORM_SPECS],
+    preferences?: CampaignPreferences
   ): string {
 
     const benefits = this.extractBenefits(product.benefits || '');
@@ -204,6 +234,10 @@ export class MarketingCopyGenerator {
 
     // Choose a style-appropriate verb
     const actionVerb = styleApproach.vocabulary[Math.floor(Math.random() * styleApproach.vocabulary.length)];
+
+    // Phase 1c - Get preference-based adjustments
+    const visualFocusAdjustment = preferences ? this.getVisualFocusCopyAdjustment(preferences.visualFocus) : '';
+    const moodAdjustment = preferences ? this.getMoodAdjustment(preferences.moodProfile) : '';
 
     let opening: string;
     let body: string;
@@ -241,9 +275,18 @@ export class MarketingCopyGenerator {
     // Combine opening and body, ensuring we stay within ideal length
     let combined = `${opening} ${body}`;
 
+    // Phase 1c - Add mood adjustment if there's room
+    if (moodAdjustment && combined.length + moodAdjustment.length < config.idealLength * 1.2) {
+      combined = `${combined} ${moodAdjustment}`;
+    }
+
     if (combined.length > config.idealLength * 1.2) {
       // Trim to essential elements if too long
       combined = `${opening} ${benefits[0] || 'Experience the difference today.'}`;
+      // Try to add mood adjustment to trimmed version if it fits
+      if (moodAdjustment && combined.length + moodAdjustment.length < config.idealLength * 1.2) {
+        combined = `${combined} ${moodAdjustment}`;
+      }
     }
 
     return combined;
@@ -409,7 +452,8 @@ export class MarketingCopyGenerator {
         includeEmojis: index % 2 === 0 && MarketingCopyGenerator.PLATFORM_SPECS[this.mapFormatToPlatform(format)].emojisRecommended
       });
 
-      copyMap.set(`${format}_${index}`, copy);
+      // Use format as key (not format_index) since we generate one image per format
+      copyMap.set(format, copy);
     });
 
     return copyMap;

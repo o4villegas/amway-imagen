@@ -31,7 +31,9 @@ export interface Campaign {
   text_overlay: 'minimal' | 'moderate' | 'heavy';
   campaign_size: 1 | 3 | 5 | 10 | 15;
   image_formats: string[]; // Will be stored as JSON
-  status?: 'pending' | 'generating' | 'completed' | 'failed';
+  preferences_json?: string; // Full preferences object (Phase 1c)
+  preferences?: any; // Parsed preferences object (runtime)
+  status?: 'pending' | 'generating' | 'awaiting_approval' | 'completed' | 'failed';
   download_url?: string;
   expires_at?: string;
   created_at?: string;
@@ -162,6 +164,8 @@ export class DatabaseManager {
 
   async createCampaign(campaign: Campaign): Promise<number> {
     try {
+      const preferencesJson = campaign.preferences ? JSON.stringify(campaign.preferences) : null;
+
       const result = await this.db.prepare(`
         INSERT INTO campaigns (
           product_id,
@@ -171,8 +175,9 @@ export class DatabaseManager {
           text_overlay,
           campaign_size,
           image_formats,
+          preferences_json,
           status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         campaign.product_id,
         campaign.campaign_type,
@@ -181,7 +186,8 @@ export class DatabaseManager {
         campaign.text_overlay,
         campaign.campaign_size,
         JSON.stringify(campaign.image_formats),
-        'pending'
+        preferencesJson,
+        campaign.status || 'pending'
       ).run();
 
       if (result.success && result.meta.last_row_id) {
@@ -202,10 +208,21 @@ export class DatabaseManager {
       ).bind(id).first();
 
       if (result) {
-        return {
+        const campaign = {
           ...result as any,
           image_formats: JSON.parse(result.image_formats as string)
         };
+
+        // Parse preferences_json if it exists
+        if (result.preferences_json) {
+          try {
+            campaign.preferences = JSON.parse(result.preferences_json as string);
+          } catch (e) {
+            console.error('Error parsing preferences_json:', e);
+          }
+        }
+
+        return campaign;
       }
 
       return null;
