@@ -8,6 +8,11 @@ compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 [build]
 command = "npm run build:worker"
 
+# Workers Static Assets for public folder (logo, favicon, etc)
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
 [ai]
 binding = "AI"
 
