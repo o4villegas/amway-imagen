@@ -443,7 +443,7 @@ export class DatabaseManager {
       }
 
       // Get unique campaign IDs
-      const campaignIds = [...new Set(toDelete.results.map((row: any) => row.campaign_id))];
+      const campaignIds = Array.from(new Set(toDelete.results.map((row: any) => row.campaign_id)));
 
       if (campaignIds.length === 0) {
         return { deleted: 0, imagesDeleted };
